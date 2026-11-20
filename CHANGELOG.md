@@ -3,6 +3,7 @@
 ## 0.2.0
 
 - Read faction messages and broadcast or send privately to another faction through an updated RTS server.
+- Explain how captains and troops can swim to board a stopped ship when dock berths are full.
 
 ## 0.1.1
 

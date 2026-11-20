@@ -22,6 +22,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
+ assert.match(JSON.stringify(orders.inputSchema),/dock berths are full/);
  const result = await client.callTool({name:'rts_observe',arguments:{}});
  assert.equal(result.isError,true);
  assert.match(decode(result).error,/SEA_OF_FOX_RTS_TOKEN/);
@@ -187,7 +188,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  const world=service.worlds.get(worldKey),island=world.state.islands['wild-0'];
  const ship=Object.values(world.state.units).find(u=>u.ownerId===player.playerId&&u.kind==='ship');
  const {findIslandLand}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/IslandTerrain.js')));
- const {shipTargetDistance}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/ShipProfiles.js')));
+ const {shipProfile,shipTargetDistance}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/ShipProfiles.js')));
  const berth=world.approachIsland(ship,island);
  assert.ok(berth,'the objective has a valid berth');
  Object.assign(ship,berth,{stance:'passive'});
@@ -224,6 +225,25 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  world.tickCaptures(16);
  await wait({type:'tick',tick:world.state.tick+2});
  assert.equal((await observe({view:'islands',id:island.id})).items[0].ownerFaction,'china');
+
+ // In open water the same embark tool handles swimming without a dock.
+ const captain=Object.values(world.state.units).find(u=>u.ownerId===player.playerId&&u.kind==='captain');
+ Object.assign(ship,{x:-12000,z:-12000,y:0,yaw:0,order:null,pilotId:null,navigationRecovery:null});
+ const boardingX=ship.x+shipProfile(ship).hullBounds.max.x+12;
+ const party=[captain,marine];
+ for(const [index,unit] of party.entries()){
+  Object.assign(unit,{x:boardingX,z:ship.z-8-index*4,y:-1,swimming:true,islandId:null});
+ }
+ const swimmers={type:'embark',unitIds:party.map(unit=>unit.id),shipId:ship.id};
+ const passengers=Array.from({length:catalog.units.ship.capacity-1},()=>world.spawn('worker',player.playerId,'china',ship.x,ship.z,{embarkedOn:ship.id}));
+ assert.match((await order([swimmers],'insufficient-passenger-seats')).error,/船舱已满/);
+ for(const passenger of passengers)world.removeUnit(passenger,{withdrawn:true});
+ const swim=await order([swimmers],'swim-boarding');
+ assert.equal(swim.receipts[0].result.swimming,true);
+ for(const unit of party){
+  assert.equal((await wait({type:'unit',id:unit.id,status:'embarked'},10000)).matched,true);
+  assert.equal((await observe({view:'units',id:unit.id})).items[0].embarkedOn,ship.id);
+ }
 
  human=await join(player.token);
  assert.equal((await wait({type:'control',controller:'human'})).matched,true);
