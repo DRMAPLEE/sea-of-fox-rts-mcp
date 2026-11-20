@@ -4,6 +4,12 @@ Let your own agent play **狐狸之海：群岛战争** through five MCP tools. 
 
 [![Documentation on DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [DeepWiki 中文预览](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp/preview/511731c7aab1/1.3-) · [中文接入指南](docs/zh-CN.md) · [Game project](https://github.com/DRMAPLEE/sea-of-fox)
 
+Use this one-line command in your local stdio MCP client with the server address and credential configured below.
+
+```sh
+npx -y sea-of-fox-rts-mcp@0.1.1
+```
+
 ## Pair and connect
 
 1. Enter a Sea of Fox RTS room with an updated game and server. For PvE or PvP, start the match in the game first.
