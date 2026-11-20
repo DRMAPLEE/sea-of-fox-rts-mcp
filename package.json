@@ -1,0 +1,48 @@
+{
+  "name": "sea-of-fox-rts-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@colyseus/sdk": "0.18.9",
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0"
+  },
+  "description": "Let an MCP client observe and play Sea of Fox RTS through the game server.",
+  "license": "MIT",
+  "bin": {
+    "sea-of-fox-rts-mcp": "index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "src/",
+    "docs/",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DRMAPLEE/sea-of-fox-rts-mcp.git"
+  },
+  "homepage": "https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp",
+  "bugs": {
+    "url": "https://github.com/DRMAPLEE/sea-of-fox-rts-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "sea-of-fox",
+    "rts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,41 @@
+import * as z from 'zod';
+
+export const entityId = z.string().min(1).max(100);
+const unitIds = z.array(entityId).min(1).max(80).describe('IDs of your own units');
+export const coordinate = z.number().gt(-29000).lt(29000);
+const point = {x: coordinate, z: coordinate};
+const army = {unitIds};
+const building = {buildingId: entityId};
+const island = {islandId: entityId};
+const kind = z.string().regex(/^[a-z][a-z-]{0,39}$/);
+const order = (type, shape, description) =>
+ z.strictObject({type: z.literal(type).describe(description), ...shape});
+const move = (type, description) => order(type, {...army, ...point}, description);
+
+export const orderSchema = z.discriminatedUnion('type', [
+ move('move', 'Move a formation to world coordinates on its island or move ships within navigable water.'),
+ move('attack-move', 'Advance while engaging encountered enemies.'),
+ move('patrol', 'Patrol between current position and target.'),
+ order('stop', army, 'Cancel active orders.'),
+ order('stance', {...army, stance:z.enum(['hold','defend','passive'])}, 'Set combat stance and clear current orders.'),
+ order('attack', {...army, targetId:entityId}, 'Engage a currently visible enemy unit or building.'),
+ order('capture', {...army, ...island}, 'Capture the target island using combat units already ashore.'),
+ order('train', {...building, kind}, 'Queue a unit at a completed friendly producer. Use the catalog for costs and unit kinds.'),
+ order('cancel-train', {...building, orderId:entityId}, 'Cancel your production order and refund its cost.'),
+ order('set-rally', {...building, ...point}, 'Set a personal rally point on the same island or in navigable water for a dock.'),
+ order('clear-rally', building, 'Clear your personal rally point.'),
+ order('build', {unitIds:z.tuple([entityId]), kind, ...point}, 'Place a building with one idle or reassigned land builder. Use rts_build_sites for coordinates.'),
+ order('construct', {...army, ...building, availableOnly:z.boolean().optional()}, 'Assign land builders on the same island to an unfinished building.'),
+ order('cancel-build', building, 'Cancel your unfinished building for a partial refund.'),
+ order('respawn', {buildingId:entityId.optional(), islandId:entityId.optional()}, 'Recover a lost captain from a safe friendly hall or portal.'),
+ order('dock-ship', {...army, ...building}, 'Moor your ships at a completed friendly dock.'),
+ order('sail-to-island', {...army, ...island, waitForBoarding:z.boolean().optional()}, 'Sail ships to server-selected berths off the target island.'),
+ order('embark', {...army, shipId:entityId.optional(), approach:z.literal(true).default(true)}, 'Order land units to board a friendly ship. Confirm boarding in observation before sailing.'),
+ order('disembark', {...army, ...island}, 'Land your passengers from selected ships or passenger IDs near the target island.'),
+ order('teleport', {...army, ...island, portalId:entityId.optional()}, 'Travel through a portal to another eligible island.'),
+ order('sail-to-atlantis', army, 'Sail ships to Atlantis when the landmark is available.'),
+ order('land-at-atlantis', army, 'Land at the Atlantis shoreline.'),
+ order('march-at-atlantis', {...army, destination:z.enum(['altar','entrance'])}, 'Follow the route inside Atlantis.'),
+ order('atlantis-interact', {unitIds:z.tuple([entityId]), action:z.enum(['ladder','chart','disc','altar'])}, 'Use a structure with a nearby captain at Atlantis.'),
+ order('council-buy', {unitIds:z.tuple([entityId]), item:kind}, 'Buy technology or a unit at the Fountain Council with the captain.'),
+]);
