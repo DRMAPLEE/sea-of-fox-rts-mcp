@@ -39,7 +39,7 @@ export function observe(state, identity, options = {}) {
  const boardings = parse(plan.boardings,{});
  const rallies = parse(plan.rallies,{});
  const control = plan.controller || 'unknown';
- const header = {worldKey, tick:state.tick, playerId, faction, controller:control, fog:state.fog};
+ const header = {worldKey, tick:state.tick, playerId, faction, controller:control, fog:state.fog, layout:state.layout};
  const optionsPage = {cursor,limit};
  const scope = item => {
   if (filter === 'own') return own(item,playerId);
@@ -65,7 +65,7 @@ export function observe(state, identity, options = {}) {
  });
  const island = i => ({
   id:i.id, name:i.name, ownerFaction:i.ownerFaction || null, objective:match.objectives?.includes(i.id) || false,
-  ...coordinates(i), radius:i.radius, claimX:i.claimX, claimZ:i.claimZ, harborX:i.harborX, harborZ:i.harborZ,
+  custom:!!i.custom, shape:i.terrainShape, ...coordinates(i), radius:i.radius, claimX:i.claimX, claimZ:i.claimZ, harborX:i.harborX, harborZ:i.harborZ,
   capture:i.capture, capturingFaction:i.capturingFaction || null, contested:i.contested,
   resourceProfile:i.resourceProfile || undefined, productionLimit:i.productionLimit,
  });
@@ -86,7 +86,8 @@ export function observe(state, identity, options = {}) {
    queued:plan.queued, population:ownUnits.length, captainReadyTick:player.captainReady,
    councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null)},
   match:{mode:match.mode, phase:match.phase, hostId:match.hostId, winnerFaction:match.winnerFaction,
-   reason:match.reason, objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,
+   reason:match.reason, victoryRule:match.victoryRule,
+   remainingOpponents:match.remainingFactions?.filter(id=>id!==faction), objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,
    factions:match.standings, societies:match.societies,
    holdSeconds:match.holdSeconds, requiredHoldSeconds:match.requiredHoldSeconds, activeRaids, atlantis:match.atlantis},
   ownedUnits:tally(ownUnits,u=>u.kind),

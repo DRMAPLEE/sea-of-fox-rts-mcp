@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_messages','rts_observe','rts_order','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_island_sites','rts_messages','rts_observe','rts_order','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -155,6 +155,13 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  assert.equal(catalog.protocol,1);
  assert.equal(catalog.buildings.lumber.produces,'wood');
  assert.ok(catalog.commands.includes('embark'));
+ assert.ok(catalog.commands.includes('create-island'));
+ assert.equal(catalog.victoryRules.pvp,'eliminate-opponents');
+ const islandCost=catalog.islandCreation.cost;
+ const islandSites=await call('rts_island_sites',{radius:catalog.islandCreation.radii[0],shape:'atoll'});
+ assert.ok(islandSites.sites.length,JSON.stringify(islandSites));
+ const createIsland={type:'create-island',...islandSites.sites[0],name:'前进基地'};
+ assert.equal((await order([createIsland],'human-island')).error,'HUMAN_IN_CONTROL');
  const start=await observe();
  assert.equal(start.controller,'human');
  assert.equal(start.playerId,player.playerId);
@@ -186,6 +193,20 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  // Start the fleet close to the objective so this transport test exercises
  // the real berth, embark, arrival, landing and capture rules without a long crossing.
  const world=service.worlds.get(worldKey),island=world.state.islands['wild-0'];
+ const treasury=world.state.players[player.playerId].resources;
+ assert.match((await order([createIsland],'too-expensive')).error,/资源不足/);
+ for(const [resource,cost] of Object.entries(islandCost))treasury[resource]=cost;
+ const created=await order([createIsland],'create-island');
+ assert.equal(created.accepted,1,JSON.stringify(created));
+ const createdId=created.receipts[0].result.islandId;
+ assert.deepEqual((await order([createIsland],'create-island')).receipts,created.receipts);
+ assert.deepEqual(await wait({type:'tick',tick:created.receipts[0].tick+1}).then(r=>r.matched),true);
+ const createdIsland=(await observe({view:'islands',id:createdId})).items[0];
+ assert.equal(createdIsland.name,'前进基地');
+ assert.equal(createdIsland.ownerFaction,'china');
+ assert.equal(createdIsland.custom,true);
+ assert.equal(createdIsland.shape,'atoll');
+ for(const resource of Object.keys(islandCost))assert.equal(treasury[resource],0);
  const ship=Object.values(world.state.units).find(u=>u.ownerId===player.playerId&&u.kind==='ship');
  const {findIslandLand}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/IslandTerrain.js')));
  const {shipProfile,shipTargetDistance}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/ShipProfiles.js')));

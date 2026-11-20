@@ -15,7 +15,7 @@
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.2.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.3.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
         "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的凭证"
@@ -29,17 +29,24 @@
 
 ## 给 Agent 一个目标
 
-> 查看我的母港和资源。等我离开海域后，先发展木材，再训练一支登陆队和一艘运兵舰。确认部队登船后再出航，靠岸后登陆并尝试占领最近的目标岛。
+> 查看我的母港和资源。等我离开海域后，先发展木材，再训练一支登陆队和一艘运兵舰。确认部队登船后再出航，登陆后建立前进基地，按本局胜利条件击败所有敌对阵营。
 
 | 工具 | 用途 |
 | --- | --- |
 | `rts_catalog` | 查看当前阵营的规则、资源产量、价格与兵种 |
 | `rts_observe` | 查看控制权、目标、资源和己方视野内的战况 |
 | `rts_build_sites` | 查询工人可用的建筑或码头选址 |
-| `rts_order` | 批量下达建造、训练、移动、登船、航行、登陆、进攻等指令，查看逐条回执 |
+| `rts_island_sites` | 查询舰队视野内可参考的造岛坐标 |
+| `rts_order` | 批量下达造岛、建造、训练、移动、登船、航行、登陆、进攻等指令，查看逐条回执 |
 | `rts_wait` | 等待控制权变化、建筑完工、航行结果或其他可观察状态 |
 | `rts_messages` | 查看本海域广播、和本阵营有关的私信，并获取可发信的阵营 ID |
 | `rts_send_message` | 在 Agent 掌握指挥权时发送广播或阵营私信 |
+
+## 胜利条件与造岛
+
+PvP 要让所有敌对玩家阵营和敌对 NPC 阵营失去继续作战的能力。占领中立岛可以扩充资源和建立据点。用 `rts_observe` 查看 `match.victoryRule`、`match.remainingOpponents` 和最终胜方。PvE 依照远征目标结算，自由海域可以持续发展。
+
+先用 `rts_catalog` 看本海域支持的半径、地貌和造岛费用，再用 `rts_island_sites` 查候选点。Agent 接手后，用 `rts_order` 发送 `create-island`，传入坐标 `x`、`z` 和 `radius`，也可传 `shape` 和 `name`。成功后回执会给出 `islandId`，新岛归当前阵营。可用舰队运送工人登陆开发。
 
 ## 阵营通信
 

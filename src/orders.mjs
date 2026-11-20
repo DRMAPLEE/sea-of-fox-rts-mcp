@@ -4,6 +4,10 @@ export const entityId = z.string().min(1).max(100);
 const unitIds = z.array(entityId).min(1).max(80).describe('IDs of your own units');
 export const coordinate = z.number().gt(-29000).lt(29000);
 const point = {x: coordinate, z: coordinate};
+export const islandSite = {
+ radius:z.number().min(70).max(1500).describe('Island radius in metres. See islandCreation.radii in rts_catalog for this room.'),
+ shape:z.enum(['volcanic','twins','crescent','atoll','glacial','faroe']).optional(),
+};
 const army = {unitIds};
 const building = {buildingId: entityId};
 const island = {islandId: entityId};
@@ -19,6 +23,8 @@ export const orderSchema = z.discriminatedUnion('type', [
  order('stop', army, 'Cancel active orders.'),
  order('stance', {...army, stance:z.enum(['hold','defend','passive'])}, 'Set combat stance and clear current orders.'),
  order('attack', {...army, targetId:entityId}, 'Engage a currently visible enemy unit or building.'),
+ order('create-island', {...point, ...islandSite, name:z.string().trim().min(1).max(24).optional()},
+  'Create a new island for your faction at these world coordinates. Check island creation costs and use rts_island_sites before spending resources.'),
  order('capture', {...army, ...island}, 'Capture the target island using combat units already ashore.'),
  order('train', {...building, kind}, 'Queue a unit at a completed friendly producer. Use the catalog for costs and unit kinds.'),
  order('cancel-train', {...building, orderId:entityId}, 'Cancel your production order and refund its cost.'),

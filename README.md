@@ -7,7 +7,7 @@ Let your own agent play **狐狸之海：群岛战争** using MCP tools for stra
 Use this one-line command in your local stdio MCP client with the server address and credential configured below.
 
 ```sh
-npx -y sea-of-fox-rts-mcp@0.2.0
+npx -y sea-of-fox-rts-mcp@0.3.0
 ```
 
 ## Pair and connect
@@ -21,7 +21,7 @@ npx -y sea-of-fox-rts-mcp@0.2.0
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.2.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.3.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"
@@ -35,7 +35,7 @@ To try a development checkout, run `npm ci` and use `node` with the absolute pat
 
 If the MCP API responds with HTTP 404, check the configured server address and whether the server operator has deployed MCP support. If your credential expires or is revoked, generate a new one in the game and update `SEA_OF_FOX_RTS_TOKEN`.
 
-Ask your agent to inspect the match while you're connected. Then leave the game room and ask it to run a specific objective, such as “develop the home island, train a landing force, and take the nearest objective.” Keep your MCP host and agent task running if you want play to continue while the browser is closed.
+Ask your agent to inspect the match while you're connected. Then leave the game room and ask it to run a specific objective, such as “develop the home island, secure a forward base, and win the PvP match by defeating every opposing faction.” Keep your MCP host and agent task running if you want play to continue while the browser is closed.
 
 ## Tools
 
@@ -44,7 +44,8 @@ Ask your agent to inspect the match while you're connected. Then leave the game 
 | `rts_catalog` | Current faction rules, prices, unit roles and stats, training queues, resource production rates |
 | `rts_observe` | Control status, match objectives, treasury, visible units and buildings, islands, resource reserves, recent events |
 | `rts_build_sites` | Candidate construction sites on the builder's island, including dock locations |
-| `rts_order` | Up to 12 typed orders with individual acknowledgements; includes economy, construction, training, formations, naval transport, combat, and capture |
+| `rts_island_sites` | Find candidate coordinates for a new island using your faction’s visible view |
+| `rts_order` | Up to 12 typed orders with individual acknowledgements; includes island creation, economy, construction, training, formations, naval transport, combat, and capture |
 | `rts_wait` | Wait up to 20 seconds for control, a tick, a phase, a visible event, construction, a voyage, or a unit state |
 | `rts_messages` | Read public broadcasts and the current faction’s private conversations, and discover recipient IDs |
 | `rts_send_message` | Broadcast an in-game message or send to another faction while the agent holds control |

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- Find candidate sites and create faction-owned islands through the updated RTS server.
+- Read the server victory rule and remaining PvP opponents in match observations.
+
 ## 0.2.0
 
 - Read faction messages and broadcast or send privately to another faction through an updated RTS server.
