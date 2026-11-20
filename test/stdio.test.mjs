@@ -63,7 +63,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:endpoint,SEA_OF_FOX_RTS_TOKEN:token});
  const call = async (name,args={}) => decode(await client.callTool({name,arguments:args}));
  const observe = options => call('rts_observe',options);
- const wait = (until,timeoutMs=6000) => call('rts_wait',{until,timeoutMs});
+ const wait = (until,timeoutMs=6000,afterTick) => call('rts_wait',{until,timeoutMs,afterTick});
  const order = (orders,batchId) => call('rts_order',{orders,batchId});
  const catalog = await call('rts_catalog');
  assert.equal(catalog.protocol,1);
@@ -96,6 +96,49 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  const owned=await observe({view:'buildings',filter:'own',id:construction});
  if (!owned.items.length) await wait({type:'tick',tick:first.receipts[1].tick+1});
  assert.equal((await observe({view:'buildings',filter:'own',id:construction})).items[0].kind,'lumber');
+
+ // Start the fleet close to the objective so this transport test exercises
+ // the real berth, embark, arrival, landing and capture rules without a long crossing.
+ const world=service.worlds.get(worldKey),island=world.state.islands['wild-0'];
+ const ship=Object.values(world.state.units).find(u=>u.ownerId===player.playerId&&u.kind==='ship');
+ const {findIslandLand}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/IslandTerrain.js')));
+ const {shipTargetDistance}=await import(pathToFileURL(resolve(gamePath,'services/rts-server/shared/ShipProfiles.js')));
+ const berth=world.approachIsland(ship,island);
+ assert.ok(berth,'the objective has a valid berth');
+ Object.assign(ship,berth,{stance:'passive'});
+ const coast=findIslandLand(island,ship,{within:point=>shipTargetDistance(point,ship)<80});
+ assert.ok(coast,'there is dry land within boarding range');
+ const marine=world.spawn('soldier',player.playerId,'china',coast.x,coast.z,{islandId:island.id,stance:'passive'});
+ const embark=await order([{type:'embark',unitIds:[marine.id],shipId:ship.id}],'embark');
+ assert.equal(embark.accepted,1,JSON.stringify(embark));
+ assert.equal((await wait({type:'unit',id:marine.id,status:'embarked'})).matched,true);
+ const sail=await order([{type:'sail-to-island',unitIds:[ship.id],islandId:island.id,waitForBoarding:true}],'sail');
+ assert.equal(sail.accepted,1,JSON.stringify(sail));
+ assert.equal((await wait({type:'voyage',id:ship.id,islandId:island.id})).matched,true);
+ assert.equal((await observe({view:'units',id:ship.id})).items[0].voyage.status,'arrived');
+ const landing=await order([{type:'disembark',unitIds:[ship.id],islandId:island.id}],'land');
+ assert.equal(landing.accepted,1,JSON.stringify(landing));
+ assert.equal((await wait({type:'unit',id:marine.id,status:'ashore',islandId:island.id})).matched,true);
+ // Seed a small battle at the flag after verifying the actual landing.
+ for(const unit of Object.values(world.state.units)){
+  if(unit.hostile&&unit.islandId===island.id) delete world.state.units[unit.id];
+ }
+ world.recordTerrain(island,'foundation',{x:island.claimX-island.x,z:island.claimZ-island.z,width:46,depth:46,height:6});
+ Object.assign(marine,{x:island.claimX,z:island.claimZ,y:6});
+ const guard=world.spawn('soldier',opponent.playerId,'red',island.claimX+3.2,island.claimZ,
+  {islandId:island.id,stance:'passive',hp:1});
+ await wait({type:'tick',tick:world.state.tick+2});
+ assert.equal((await observe({view:'units',id:guard.id})).items[0].id,guard.id);
+ const attack=await order([{type:'attack',unitIds:[marine.id],targetId:guard.id}],'attack-flag');
+ assert.equal(attack.accepted,1,JSON.stringify(attack));
+ assert.equal((await wait({type:'event',afterTick:attack.receipts[0].tick,event:'hit',entityId:guard.id})).matched,true);
+ assert.equal((await wait({type:'unit',status:'idle',id:marine.id},6000,attack.receipts[0].tick)).matched,true);
+ assert.equal((await observe({view:'units',id:guard.id})).items.length,0);
+ const capture=await order([{type:'capture',unitIds:[marine.id],islandId:island.id}],'capture-flag');
+ assert.equal(capture.accepted,1,JSON.stringify(capture));
+ world.tickCaptures(16);
+ await wait({type:'tick',tick:world.state.tick+2});
+ assert.equal((await observe({view:'islands',id:island.id})).items[0].ownerFaction,'china');
 
  human=await join(player.token);
  assert.equal((await wait({type:'control',controller:'human'})).matched,true);

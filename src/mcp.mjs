@@ -97,11 +97,16 @@ export function createServer({version,server,token}) {
 
  register('rts_wait',
   'Wait for an observed condition for up to 20 seconds, then return a fresh overview. Timeout is a normal result with matched=false. For a voyage the wait matches arrival or a blocked route; inspect the ship detail before landing. For landing use type=unit, status=ashore and the islandId.',
-  z.strictObject({until:waitCondition,timeoutMs:z.number().int().min(100).max(20000).default(10000)}), true,
-  async ({until,timeoutMs},ctx) => {
+  z.strictObject({until:waitCondition,timeoutMs:z.number().int().min(100).max(20000).default(10000),
+   afterTick:tick.optional().describe('Require state newer than this tick. Use the receipt tick after issuing an order to avoid matching stale state.'),
+  }), true,
+  async ({until,timeoutMs,afterTick},ctx) => {
    if (until.type==='unit'&&until.status==='ashore'&&!until.islandId) return error('Specify islandId when waiting for landing.');
    await game.room();
-   const {matched,state} = await game.wait(waitPredicate(until,game.identity.playerId),timeoutMs,ctx.signal);
+   const matches = waitPredicate(until,game.identity.playerId);
+   const {matched,state} = await game.wait(
+    state => (afterTick === undefined || state.tick > afterTick) && matches(state),
+    timeoutMs,ctx.signal);
    return success({matched,state:observe(state,game.identity,{limit:6})});
   });
  return {mcp,game};
