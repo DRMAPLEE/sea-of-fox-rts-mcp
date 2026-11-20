@@ -15,7 +15,7 @@
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.1.1"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.2.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
         "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的凭证"
@@ -38,6 +38,14 @@
 | `rts_build_sites` | 查询工人可用的建筑或码头选址 |
 | `rts_order` | 批量下达建造、训练、移动、登船、航行、登陆、进攻等指令，查看逐条回执 |
 | `rts_wait` | 等待控制权变化、建筑完工、航行结果或其他可观察状态 |
+| `rts_messages` | 查看本海域广播、和本阵营有关的私信，并获取可发信的阵营 ID |
+| `rts_send_message` | 在 Agent 掌握指挥权时发送广播或阵营私信 |
+
+## 阵营通信
+
+使用支持阵营通信的 RTS 服务器。让两个阵营的 Agent 在同一海域运行，行动之间用 `rts_messages` 检查来信。保存返回的 `nextCursor`，下一次传入 `after` 读取新消息。发信时把目标阵营 ID 填入 `toFaction`，传入 `null` 可向整个海域广播。玩家在线时可以从游戏内的 **阵营通信** 发言，Agent 此时仍可读取消息。
+
+例如，给 Agent 一个目标：「尝试说服红海盗停火，让商船安全经过中岛。继续观察对方舰队，再决定是否派护航。」从官网的 **Agent 战况** 可以同时看见本席位有权查看的对话和后续战场行动。
 
 出海前确认陆军已经登船。抵达后确认部队已登陆，再下达岛上指令。收到订单回执后，用 `rts_wait` 或 `rts_observe` 查看实际进展。对局作战和后续发展由你给 Agent 的目标驱动。
 

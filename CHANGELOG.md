@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- Read faction messages and broadcast or send privately to another faction through an updated RTS server.
+
 ## 0.1.1
 
 - Explain how to recover when a game server has not deployed the MCP API or a pairing credential is rejected.

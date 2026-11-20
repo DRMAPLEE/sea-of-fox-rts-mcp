@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_observe','rts_order','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_messages','rts_observe','rts_order','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -50,6 +50,68 @@ test('CLI explains how to recover from an unavailable RTS MCP API or expired cre
 });
 
 const gamePath = process.env.SEA_OF_FOX_GAME_DIR;
+test('two MCP agents can negotiate while third parties see only broadcasts', {skip:!gamePath,timeout:25000}, async t => {
+ const {pathToFileURL} = await import('node:url');
+ const {resolve} = await import('node:path');
+ const {createRTSServer} = await import(pathToFileURL(resolve(gamePath,'services/rts-server/src/server.mjs')));
+ const {Client:GameClient} = await import('@colyseus/sdk');
+ const service = await createRTSServer({enablePhysicalWake:false});
+ const endpoint = 'http://127.0.0.1:'+(await service.listen({port:0})).port;
+ const rooms = [];
+ const worldKey='learn_mcp_diplomacy';
+ t.after(async()=>{for(const room of rooms) await room.leave().catch(()=>{});await service.close();});
+ const request=async(path,{token,method='GET',body}={})=>{
+  const response=await fetch(endpoint+'/api/rts/'+path,{method,headers:{
+   'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{}),
+  },body:body?JSON.stringify(body):undefined});
+  return {status:response.status,data:await response.json()};
+ };
+ const join=async(token,key=worldKey)=>{
+  const sdk=new GameClient(endpoint);sdk.auth.token=token;
+  const room=await sdk.joinOrCreate('archipelago',{worldKey:key});rooms.push(room);return room;
+ };
+ const seat=async(faction,key=worldKey)=>{
+  const {data}=await request('session',{method:'POST',body:{worldKey:key,faction,name:faction}});
+  return {...data,room:await join(data.token,key)};
+ };
+ const east=await seat('china'),red=await seat('red'),neutral=await seat('spain');
+ const remote=await seat('red','learn_mcp_other_sea');
+ const agent=async player=>{
+  const {data}=await request('mcp/credential',{token:player.token,method:'POST'});
+  const client=await launch(t,{SEA_OF_FOX_RTS_URL:endpoint,SEA_OF_FOX_RTS_TOKEN:data.token});
+  return async (name,args={})=>decode(await client.callTool({name,arguments:args}));
+ };
+ const eastAgent=await agent(east),redAgent=await agent(red);
+ assert.equal((await request('diplomacy')).status,401);
+ assert.equal((await eastAgent('rts_send_message',{text:'正在接管'})).error,'HUMAN_IN_CONTROL');
+ assert.deepEqual((await redAgent('rts_messages')).messages,[]);
+ await east.room.leave();await red.room.leave();
+ const offer={toFaction:'red',text:'商队通过中岛时停火，如何？',requestId:'offer_1'};
+ const first=await eastAgent('rts_send_message',offer);
+ assert.equal(first.message.source,'agent');
+ assert.equal(first.message.fromFaction,'china');
+ assert.equal(first.message.toFaction,'red');
+ const repeat=await eastAgent('rts_send_message',offer);
+ assert.equal(repeat.replayed,true);
+ assert.equal(repeat.message.id,first.message.id);
+ assert.match((await eastAgent('rts_send_message',{...offer,text:'改变报价'})).error,/编号/);
+ const inbox=await redAgent('rts_messages');
+ assert.deepEqual(inbox.messages,[first.message]);
+ assert.equal(inbox.nextCursor,first.message.id);
+ assert.equal((await redAgent('rts_messages',{after:inbox.nextCursor})).nextCursor,inbox.nextCursor);
+ const secret=(await request('watch',{token:neutral.token})).data;
+ assert.deepEqual(secret.messages,[]);
+ assert.deepEqual((await request('diplomacy',{token:remote.token})).data.messages,[]);
+ assert.equal((await request('diplomacy',{token:neutral.token,method:'POST',body:{requestId:'overlong',text:'长'.repeat(241)}})).status,400);
+ const publicReply=await redAgent('rts_send_message',{text:'红海盗同意暂时停火。'});
+ const afterOffer=await eastAgent('rts_messages',{after:first.message.id});
+ assert.deepEqual(afterOffer.messages,[publicReply.message]);
+ assert.deepEqual((await request('watch',{token:neutral.token})).data.messages,[publicReply.message]);
+ assert.equal((await request('watch',{token:east.token})).data.controller,'agent');
+ await join(red.token);
+ assert.equal((await redAgent('rts_send_message',{text:'测试接管'})).error,'HUMAN_IN_CONTROL');
+});
+
 test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gamePath,timeout:25000}, async t => {
  const {pathToFileURL} = await import('node:url');
  const {resolve} = await import('node:path');

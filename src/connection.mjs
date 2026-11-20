@@ -11,7 +11,7 @@ export class SeaOfFoxConnection {
   this.token = token;
  }
 
- async request(path) {
+ async request(path, {method='GET',body}={}) {
   if (!this.server || !this.token) throw Error('Set SEA_OF_FOX_RTS_URL and SEA_OF_FOX_RTS_TOKEN in your MCP configuration.');
   const base = new URL(this.server);
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
@@ -19,13 +19,16 @@ export class SeaOfFoxConnection {
    throw Error('Use an HTTPS RTS server URL. HTTP is supported on localhost for development.');
   }
   const response = await fetch(new URL(path, base), {
-   headers: {authorization: 'Bearer ' + this.token},
+   method,
+   headers: {authorization: 'Bearer ' + this.token, ...(body ? {'content-type':'application/json'} : {})},
+   body:body ? JSON.stringify(body) : undefined,
    signal: AbortSignal.timeout(8000),
    redirect: 'error',
   });
   if (!response.ok) {
    const body = await response.json().catch(() => ({}));
    if (response.status === 404) {
+    if (path.startsWith('/api/rts/diplomacy')) throw Error('This RTS server has not deployed faction communication.');
     throw Error('RTS MCP API unavailable (HTTP 404). Use the RTS server address from the in-game pairing dialog. The server must have MCP support enabled.');
    }
    if (response.status === 401) {

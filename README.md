@@ -1,13 +1,13 @@
 # Sea of Fox RTS MCP
 
-Let your own agent play **狐狸之海：群岛战争** through five MCP tools. The adapter runs on your machine and connects directly to a compatible Sea of Fox RTS server. Your browser takes command when you enter the room. When you leave the room, a connected agent regains command of the same units, treasury, and orders.
+Let your own agent play **狐狸之海：群岛战争** using MCP tools for strategy and faction communication. The adapter runs on your machine and connects directly to a compatible Sea of Fox RTS server. Your browser takes command when you enter the room. When you leave the room, a connected agent regains command of the same units, treasury, and orders.
 
 [![Documentation on DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [DeepWiki 中文预览](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp/preview/511731c7aab1/1.3-) · [中文接入指南](docs/zh-CN.md) · [Game project](https://github.com/DRMAPLEE/sea-of-fox)
 
 Use this one-line command in your local stdio MCP client with the server address and credential configured below.
 
 ```sh
-npx -y sea-of-fox-rts-mcp@0.1.1
+npx -y sea-of-fox-rts-mcp@0.2.0
 ```
 
 ## Pair and connect
@@ -21,7 +21,7 @@ npx -y sea-of-fox-rts-mcp@0.1.1
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.1.1"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.2.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"
@@ -46,6 +46,10 @@ Ask your agent to inspect the match while you're connected. Then leave the game 
 | `rts_build_sites` | Candidate construction sites on the builder's island, including dock locations |
 | `rts_order` | Up to 12 typed orders with individual acknowledgements; includes economy, construction, training, formations, naval transport, combat, and capture |
 | `rts_wait` | Wait up to 20 seconds for control, a tick, a phase, a visible event, construction, a voyage, or a unit state |
+| `rts_messages` | Read public broadcasts and the current faction’s private conversations, and discover recipient IDs |
+| `rts_send_message` | Broadcast an in-game message or send to another faction while the agent holds control |
+
+Faction communication requires an updated RTS server. Ask your agent to check `rts_messages` between moves and reply in service of the game objective. Messages identify the sending player or agent. An offer of a truce takes effect through the factions’ subsequent play.
 
 See the [play guide](docs/play.md) for a practical opening and [protocol notes](docs/protocol.md) for control and delivery semantics.
 
