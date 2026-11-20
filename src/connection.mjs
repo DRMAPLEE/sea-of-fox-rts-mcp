@@ -25,6 +25,13 @@ export class SeaOfFoxConnection {
   });
   if (!response.ok) {
    const body = await response.json().catch(() => ({}));
+   if (response.status === 404) {
+    throw Error('RTS MCP API unavailable (HTTP 404). Use the RTS server address from the in-game pairing dialog. The server must have MCP support enabled.');
+   }
+   if (response.status === 401) {
+    const reason = body.error || 'RTS MCP credential was rejected (HTTP 401).';
+    throw Error(reason + ' Generate a new credential in RTS MCP settings and update SEA_OF_FOX_RTS_TOKEN.');
+   }
    throw Error(body.error || `RTS server returned HTTP ${response.status}`);
   }
   return response.json();

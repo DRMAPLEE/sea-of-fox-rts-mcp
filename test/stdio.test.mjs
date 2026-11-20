@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
+import {createServer as createHttpServer} from 'node:http';
 import {Client} from '@modelcontextprotocol/client';
 import {StdioClientTransport} from '@modelcontextprotocol/client/stdio';
 
@@ -24,6 +25,28 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const result = await client.callTool({name:'rts_observe',arguments:{}});
  assert.equal(result.isError,true);
  assert.match(decode(result).error,/SEA_OF_FOX_RTS_TOKEN/);
+});
+
+test('CLI explains how to recover from an unavailable RTS MCP API or expired credential', async t => {
+ const http = createHttpServer((req,res) => {
+  if (req.url === '/api/rts/mcp/session') {
+   res.writeHead(404,{'content-type':'text/html'}).end('<h1>Not Found</h1>');
+   return;
+  }
+  res.writeHead(401,{'content-type':'application/json'}).end(JSON.stringify({error:'RTS MCP credential expired or revoked'}));
+ });
+ await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));
+ t.after(()=>new Promise((resolve,reject)=>http.close(error=>error?reject(error):resolve())));
+ const client = await launch(t,{
+  SEA_OF_FOX_RTS_URL:'http://127.0.0.1:'+http.address().port,
+  SEA_OF_FOX_RTS_TOKEN:'test-credential',
+ });
+ const observation = await client.callTool({name:'rts_observe',arguments:{}});
+ assert.equal(observation.isError,true);
+ assert.match(decode(observation).error,/HTTP 404.*in-game pairing dialog.*MCP support/);
+ const catalog = await client.callTool({name:'rts_catalog',arguments:{}});
+ assert.equal(catalog.isError,true);
+ assert.match(decode(catalog).error,/expired or revoked.*SEA_OF_FOX_RTS_TOKEN/);
 });
 
 const gamePath = process.env.SEA_OF_FOX_GAME_DIR;

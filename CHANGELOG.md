@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Explain how to recover when a game server has not deployed the MCP API or a pairing credential is rejected.
+
 ## 0.1.0
 
 - Connect to a Sea of Fox RTS room using a revocable credential issued in the game.

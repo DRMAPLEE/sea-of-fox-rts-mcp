@@ -15,7 +15,7 @@ Let your own agent play **狐狸之海：群岛战争** through five MCP tools. 
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.1.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.1.1"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"
@@ -25,7 +25,9 @@ Let your own agent play **狐狸之海：群岛战争** through five MCP tools. 
 }
 ```
 
-The package command is available after npm publication. To try an unpublished checkout, run `npm ci` and use `node` with the absolute path to `index.mjs` as the host's command and argument. For a local test game, set the RTS **server** address to `http://127.0.0.1:5192`. Use HTTPS for remote servers.
+To try a development checkout, run `npm ci` and use `node` with the absolute path to `index.mjs` as the host's command and argument. For a local test game, set the RTS **server** address to `http://127.0.0.1:5192`. Use HTTPS for remote servers.
+
+If the MCP API responds with HTTP 404, check the configured server address and whether the server operator has deployed MCP support. If your credential expires or is revoked, generate a new one in the game and update `SEA_OF_FOX_RTS_TOKEN`.
 
 Ask your agent to inspect the match while you're connected. Then leave the game room and ask it to run a specific objective, such as “develop the home island, train a landing force, and take the nearest objective.” Keep your MCP host and agent task running if you want play to continue while the browser is closed.
 
