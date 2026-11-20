@@ -1,0 +1,108 @@
+{
+  "repo_notes": [
+    {
+      "content": "Preserve the existing English reference pages. The dedicated 中文接入与玩法指南 page is written entirely in Simplified Chinese and should use docs/zh-CN.md as its primary source. Sea of Fox RTS MCP is an adapter for a player’s own agent and shares the same RTS seat with the browser."
+    }
+  ],
+  "pages": [
+    {
+      "title": "Overview",
+      "purpose": "What sea-of-fox-rts-mcp is: an MCP stdio adapter letting AI agents play the Sea of Fox RTS game via a server-authorized tool API. High-level architecture (index.mjs -> src/mcp.mjs -> connection/state/orders), repo layout, and links to child pages."
+    },
+    {
+      "title": "Getting Started and Configuration",
+      "purpose": "Install/run via npx or node index.mjs, generating in-game credentials, SEA_OF_FOX_RTS_URL / SEA_OF_FOX_RTS_TOKEN / SEA_OF_FOX_GAME_DIR, MCP host config, Node version requirements.",
+      "parent": "Overview"
+    },
+    {
+      "title": "CLI Entrypoint and Process Lifecycle",
+      "purpose": "index.mjs: --version/--help, stdout sanitation for JSON-RPC, createServer wiring, serveStdio binding, SIGINT/SIGTERM and stdin-end shutdown.",
+      "parent": "Overview"
+    },
+    {
+      "title": "中文接入与玩法指南",
+      "purpose": "用简体中文面向《狐狸之海》玩家编写快速入门。以 docs/zh-CN.md 为主要依据，说明在官服 RTS 海域从设置生成和撤销凭证、Node.js 要求、npm stdio 配置、玩家与 Agent 如何交接同一席位、建造和海运示例、五个工具以及常见错误。保留 API、工具名、命令和错误码的原始拼写，链接到中文原文。",
+      "parent": "Overview",
+      "page_notes": [
+        {
+          "content": "请使用简体中文写整页，包括小标题与图表标签。明确玩家在游戏内开始 PVE/PVP 对局，玩家上线时始终优先，由自己的 MCP 客户端运行 Agent。不要为真实凭证提供示例值。"
+        }
+      ]
+    },
+    {
+      "title": "MCP Tool Layer",
+      "purpose": "Overview of the five MCP tools exposed by src/mcp.mjs, registration helper, result/error envelopes, annotations and server instructions; links to per-tool child pages."
+    },
+    {
+      "title": "Observation Tools: rts_catalog and rts_observe",
+      "purpose": "Catalog fetch endpoint, observe views (overview/units/buildings/islands/reserves/events), filters, pagination and cursors.",
+      "parent": "MCP Tool Layer"
+    },
+    {
+      "title": "Action Tools: rts_order and rts_build_sites",
+      "purpose": "Batched order execution (max 12), batchId deduplication, continueOnError, serialized order queue, receipts, and the build-site candidate lookup.",
+      "parent": "MCP Tool Layer"
+    },
+    {
+      "title": "Synchronization: rts_wait",
+      "purpose": "Wait condition discriminated union (tick/control/phase/unit/building/voyage/event), timeouts up to 20s, matched=false semantics, abort signals.",
+      "parent": "MCP Tool Layer"
+    },
+    {
+      "title": "Core Runtime (src/)",
+      "purpose": "Overview of the runtime modules: connection transport, state projection, and order schemas; how they compose behind the tool layer."
+    },
+    {
+      "title": "Game Connection and Transport",
+      "purpose": "SeaOfFoxConnection: HTTPS/localhost URL validation, bearer auth, /api/rts/mcp/session and /catalog, Colyseus joinOrCreate, ack correlation, waiters, reconnect/disconnect and close.",
+      "parent": "Core Runtime (src/)"
+    },
+    {
+      "title": "State Projection and Wait Predicates",
+      "purpose": "src/state.mjs observe(): header, player production plan parsing, unit/building/island serializers, scoping filters, pagination; waitPredicate construction.",
+      "parent": "Core Runtime (src/)"
+    },
+    {
+      "title": "Order Schemas",
+      "purpose": "src/orders.mjs zod discriminated union of all order types — movement, combat, capture, production, building, naval transport, portals, Atlantis and council — plus shared entityId/coordinate primitives.",
+      "parent": "Core Runtime (src/)"
+    },
+    {
+      "title": "Protocol and Gameplay Guides",
+      "purpose": "Overview of docs/: how the adapter shares a seat with the human player and how an agent should actually play a match."
+    },
+    {
+      "title": "Control, Credentials and Batch Semantics",
+      "purpose": "docs/protocol.md: shared player seat, HUMAN_IN_CONTROL rejection, credential lifecycle/rotation/revocation, protocol version 1, receipts and the 128-entry history, event retention, data-vs-instruction safety.",
+      "parent": "Protocol and Gameplay Guides"
+    },
+    {
+      "title": "Agent Play Guide",
+      "purpose": "docs/play.md: PvE/PvP victory conditions, opening economy, builders and production queues, landing parties (embark/sail-to-island/disembark), attack/capture and hold timers.",
+      "parent": "Protocol and Gameplay Guides"
+    },
+    {
+      "title": "Project Infrastructure",
+      "purpose": "Overview of packaging, CI/CD, testing and repo hygiene."
+    },
+    {
+      "title": "Packaging and Dependencies",
+      "purpose": "package.json metadata, bin/files/exports, scripts, dependency set (@modelcontextprotocol/server, @colyseus/sdk, zod) and package-lock.json; .gitignore exclusions.",
+      "parent": "Project Infrastructure"
+    },
+    {
+      "title": "CI and Release Pipeline",
+      "purpose": "ci.yml matrix testing on Node 22/24, publish.yml tag-triggered version check, pack, OIDC npm publish and GitHub release, and the docs/releasing.md checklist.",
+      "parent": "Project Infrastructure"
+    },
+    {
+      "title": "Testing",
+      "purpose": "test/stdio.test.mjs: spawning the adapter over stdio, protocol smoke tests, and optional real-game integration via SEA_OF_FOX_GAME_DIR.",
+      "parent": "Project Infrastructure"
+    },
+    {
+      "title": "Glossary",
+      "purpose": "Definitions of MCP, Colyseus room, worldKey, player seat, controller/HUMAN_IN_CONTROL, batchId, receipt, tick, phase, fog, faction, objective island, reserves, production plan, voyage/boarding, embark/disembark, build site, rally point, Atlantis, Fountain Council, credential, trusted publishing — with file pointers."
+    }
+  ]
+}

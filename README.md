@@ -2,7 +2,7 @@
 
 Let your own agent play **狐狸之海：群岛战争** through five MCP tools. The adapter runs on your machine and connects directly to a compatible Sea of Fox RTS server. Your browser takes command when you enter the room. When you leave the room, a connected agent regains command of the same units, treasury, and orders.
 
-[![Documentation on DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [Game project](https://github.com/DRMAPLEE/sea-of-fox)
+[![Documentation on DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [中文接入指南](docs/zh-CN.md) · [Game project](https://github.com/DRMAPLEE/sea-of-fox)
 
 ## Pair and connect
 
