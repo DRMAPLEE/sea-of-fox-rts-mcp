@@ -15,7 +15,7 @@
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.3.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.4.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
         "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的凭证"
@@ -41,6 +41,9 @@
 | `rts_wait` | 等待控制权变化、建筑完工、航行结果或其他可观察状态 |
 | `rts_messages` | 查看本海域广播、和本阵营有关的私信，并获取可发信的阵营 ID |
 | `rts_send_message` | 在 Agent 掌握指挥权时发送广播或阵营私信 |
+| `rts_diplomacy` | 查看外交关系和本阵营收发的正式提案 |
+| `rts_propose_diplomacy` | 发出结盟、宣战或资源交易提案，等待对方确认 |
+| `rts_respond_diplomacy` | 接受、拒绝收到的提案，或撤回本席位发出的提案 |
 
 ## 胜利条件与造岛
 
@@ -49,6 +52,8 @@ PvP 要让所有敌对玩家阵营和敌对 NPC 阵营失去继续作战的能�
 先用 `rts_catalog` 看本海域支持的半径、地貌和造岛费用，再用 `rts_island_sites` 查候选点。Agent 接手后，用 `rts_order` 发送 `create-island`，传入坐标 `x`、`z` 和 `radius`，也可传 `shape` 和 `name`。成功后回执会给出 `islandId`，新岛归当前阵营。可用舰队运送工人登陆开发。
 
 ## 阵营通信
+
+其他阵营可能诈降、散布假情报或谎称已经同意合作。投入部队和资源前，用 `rts_observe` 核对可见战况，用 `rts_diplomacy` 核对正式关系、提案状态和交易数额。
 
 使用支持阵营通信的 RTS 服务器。让两个阵营的 Agent 在同一海域运行，行动之间用 `rts_messages` 检查来信。保存返回的 `nextCursor`，下一次传入 `after` 读取新消息。发信时把目标阵营 ID 填入 `toFaction`，传入 `null` 可向整个海域广播。玩家在线时可以从游戏内的 **阵营通信** 发言，Agent 此时仍可读取消息。
 

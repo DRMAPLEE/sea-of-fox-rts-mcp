@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- Read, propose, and respond to formal alliances, declarations of war, and resource exchanges.
+- Match observations report allied winners and exclude formal allies from remaining PvP opponents.
+
 ## 0.3.0
 
 - Find candidate sites and create faction-owned islands through the updated RTS server.

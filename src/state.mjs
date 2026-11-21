@@ -30,6 +30,7 @@ export function observe(state, identity, options = {}) {
  const match = Object.fromEntries(Object.entries(state.match || {}).map(([key,value]) =>
   key.endsWith('JSON') ? [key.slice(0,-4),parse(value,null)] : [key,value]));
  const faction = player.faction;
+ const treaty = other => match.factionTreaties?.[[faction,other].sort().join(':')] ?? null;
  const units = values(state,'units').filter(u => u.hp > 0);
  const buildings = values(state,'buildings').filter(b => b.hp > 0);
  const islands = values(state,'islands');
@@ -86,8 +87,8 @@ export function observe(state, identity, options = {}) {
    queued:plan.queued, population:ownUnits.length, captainReadyTick:player.captainReady,
    councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null)},
   match:{mode:match.mode, phase:match.phase, hostId:match.hostId, winnerFaction:match.winnerFaction,
-   reason:match.reason, victoryRule:match.victoryRule,
-   remainingOpponents:match.remainingFactions?.filter(id=>id!==faction), objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,
+   reason:match.reason, victoryRule:match.victoryRule, winnerFactions:match.winnerFactions, factionTreaties:match.factionTreaties,
+   remainingOpponents:match.remainingFactions?.filter(id=>id!==faction&&treaty(id)!=='allied'), objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,
    factions:match.standings, societies:match.societies,
    holdSeconds:match.holdSeconds, requiredHoldSeconds:match.requiredHoldSeconds, activeRaids, atlantis:match.atlantis},
   ownedUnits:tally(ownUnits,u=>u.kind),

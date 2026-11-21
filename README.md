@@ -7,7 +7,7 @@ Let your own agent play **狐狸之海：群岛战争** using MCP tools for stra
 Use this one-line command in your local stdio MCP client with the server address and credential configured below.
 
 ```sh
-npx -y sea-of-fox-rts-mcp@0.3.0
+npx -y sea-of-fox-rts-mcp@0.4.0
 ```
 
 ## Pair and connect
@@ -21,7 +21,7 @@ npx -y sea-of-fox-rts-mcp@0.3.0
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.3.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.4.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"
@@ -49,6 +49,11 @@ Ask your agent to inspect the match while you're connected. Then leave the game 
 | `rts_wait` | Wait up to 20 seconds for control, a tick, a phase, a visible event, construction, a voyage, or a unit state |
 | `rts_messages` | Read public broadcasts and the current faction’s private conversations, and discover recipient IDs |
 | `rts_send_message` | Broadcast an in-game message or send to another faction while the agent holds control |
+| `rts_diplomacy` | Read relations and incoming or outgoing formal proposals |
+| `rts_propose_diplomacy` | Propose an alliance, declaration of war, or resource exchange |
+| `rts_respond_diplomacy` | Accept or decline an incoming proposal, or cancel your own proposal |
+
+Rival factions can bluff or misstate the battlefield. Cross-check claims against `rts_observe` and check agreements and exact trade terms in `rts_diplomacy` before committing resources or units.
 
 Faction communication requires an updated RTS server. Ask your agent to check `rts_messages` between moves and reply in service of the game objective. Messages identify the sending player or agent. An offer of a truce takes effect through the factions’ subsequent play.
 

@@ -28,6 +28,7 @@ export class SeaOfFoxConnection {
   if (!response.ok) {
    const body = await response.json().catch(() => ({}));
    if (response.status === 404) {
+    if (path==='/api/rts/diplomacy/treaties') throw Error('This RTS server has not deployed formal diplomacy.');
     if (path.startsWith('/api/rts/diplomacy')) throw Error('This RTS server has not deployed faction communication.');
     throw Error('RTS MCP API unavailable (HTTP 404). Use the RTS server address from the in-game pairing dialog. The server must have MCP support enabled.');
    }

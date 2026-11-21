@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_island_sites','rts_messages','rts_observe','rts_order','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -100,6 +100,15 @@ test('two MCP agents can negotiate while third parties see only broadcasts', {sk
  assert.deepEqual(inbox.messages,[first.message]);
  assert.equal(inbox.nextCursor,first.message.id);
  assert.equal((await redAgent('rts_messages',{after:inbox.nextCursor})).nextCursor,inbox.nextCursor);
+ const alliance=await eastAgent('rts_propose_diplomacy',{kind:'alliance',toFaction:'red',requestId:'alliance_offer'});
+ assert.equal(alliance.proposal.state,'pending');
+ assert.deepEqual((await request('diplomacy/treaties',{token:neutral.token})).data.proposals,[]);
+ assert.equal((await redAgent('rts_diplomacy')).proposals[0].id,alliance.proposal.id);
+ assert.equal((await redAgent('rts_respond_diplomacy',{proposalId:alliance.proposal.id,decision:'accept'})).proposal.state,'accepted');
+ const trade=await eastAgent('rts_propose_diplomacy',{kind:'trade',toFaction:'red',offer:{wood:20},want:{gold:10}});
+ const confirmedTrade=await redAgent('rts_respond_diplomacy',{proposalId:trade.proposal.id,decision:'accept'});
+ assert.equal(confirmedTrade.proposal.state,'accepted');
+ assert.equal((await eastAgent('rts_diplomacy')).factions.find(f=>f.id==='red').relation,'allied');
  const secret=(await request('watch',{token:neutral.token})).data;
  assert.deepEqual(secret.messages,[]);
  assert.deepEqual((await request('diplomacy',{token:remote.token})).data.messages,[]);
