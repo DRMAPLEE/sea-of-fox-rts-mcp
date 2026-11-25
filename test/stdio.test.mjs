@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -294,4 +294,38 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  assert.match(revoked.error,/revoked/);
  assert.match((await observe()).error,/revoked|Disconnected/);
  await client.close();
+});
+
+test('account-key instances pin one room while sharing one account key',async t=>{
+ const selected=[];
+ const token='sof-account-v1.'+'a'.repeat(43);
+ const http=createHttpServer((req,res)=>{
+  const send=(status,body)=>res.writeHead(status,{'content-type':'application/json'}).end(JSON.stringify(body));
+  if(req.url==='/api/rts/mcp/rooms'&&req.headers.authorization==='Bearer '+token){
+   return send(200,{delegated:[{worldKey:'east'},{worldKey:'west'}]});
+  }
+  const match=/^\/api\/rts\/mcp\/rooms\/(east|west)\/connect$/.exec(req.url);
+  if(match&&req.headers.authorization==='Bearer '+token){
+   const worldKey=match[1];
+   selected.push(worldKey);
+   return send(201,{token:'scoped-'+worldKey,worldKey,faction:'china',expires:Date.now()+60000});
+  }
+  if(req.url==='/api/rts/mcp/catalog'&&['Bearer scoped-east','Bearer scoped-west'].includes(req.headers.authorization)){
+   return send(200,{worldKey:req.headers.authorization.split('-').at(-1)});
+  }
+  return send(401,{error:'unexpected credential'});
+ });
+ await new Promise(resolve=>http.listen(0,'127.0.0.1',resolve));
+ t.after(()=>new Promise(resolve=>http.close(resolve)));
+ const env={SEA_OF_FOX_RTS_URL:'http://127.0.0.1:'+http.address().port,SEA_OF_FOX_RTS_TOKEN:token};
+ const [east,west]=await Promise.all([launch(t,{...env,SEA_OF_FOX_RTS_ROOM:'east'}),launch(t,env)]);
+ assert.equal(decode(await west.callTool({name:'rts_rooms',arguments:{}})).delegated.length,2);
+ const result=await west.callTool({name:'rts_select_room',arguments:{worldKey:'west'}});
+ assert.equal(decode(result).worldKey,'west');
+ assert.ok(!Object.hasOwn(decode(result),'token'));
+ const catalogs=await Promise.all([east,west].map(client=>client.callTool({name:'rts_catalog',arguments:{}})));
+ assert.deepEqual(catalogs.map(item=>decode(item).worldKey),['east','west']);
+ const denied=await west.callTool({name:'rts_select_room',arguments:{worldKey:'east'}});
+ assert.match(decode(denied).error,/pinned/);
+ assert.deepEqual(selected.sort(),['east','west']);
 });

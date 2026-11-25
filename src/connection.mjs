@@ -5,22 +5,58 @@ export class SeaOfFoxConnection {
  #opening;
  #waiters = new Set();
  #pending = new Map();
+ #scoped;
+ #scoping;
+ #roomKey;
+ #faction;
 
- constructor({server, token}) {
+ constructor({server,token,room,faction}) {
   this.server = server;
   this.token = token;
+  this.accountKey = typeof token==='string'&&token.startsWith('sof-account-v1.');
+  this.#roomKey = room || null;
+  this.#faction = faction || null;
  }
 
- async request(path, {method='GET',body}={}) {
+ rooms() {
+  if(!this.accountKey)throw Error('Room discovery requires your Sea of Fox MCP API Key.');
+  return this.request('/api/rts/mcp/rooms',{account:true});
+ }
+
+ async selectRoom(worldKey,faction) {
+  if(!this.accountKey)throw Error('A legacy credential is already tied to a single RTS seat.');
+  if(this.#roomKey&&(this.#roomKey!==worldKey||faction&&this.#faction&&this.#faction!==faction)){
+   throw Error('This instance is pinned to another RTS seat. Start a second instance with the same account key.');
+  }
+  this.#roomKey=worldKey;
+  this.#faction||=faction||null;
+  const selected=await this.#scope();
+  return {worldKey:selected.worldKey,faction:selected.faction,expires:selected.expires};
+ }
+
+ async #scope() {
+  if(this.#scoped?.expires>Date.now())return this.#scoped;
+  if(!this.#roomKey)throw Error('Use rts_rooms and rts_select_room or set SEA_OF_FOX_RTS_ROOM before controlling a match.');
+  if(!this.#scoping){
+   this.#scoping=this.request('/api/rts/mcp/rooms/'+encodeURIComponent(this.#roomKey)+'/connect',{
+    account:true,method:'POST',body:this.#faction?{faction:this.#faction}:{},
+   }).then(selected=>{this.#scoped=selected;this.#faction=selected.faction;return selected;})
+    .finally(()=>{this.#scoping=undefined;});
+  }
+  return this.#scoping;
+ }
+
+ async request(path, {method='GET',body,account=false}={}) {
   if (!this.server || !this.token) throw Error('Set SEA_OF_FOX_RTS_URL and SEA_OF_FOX_RTS_TOKEN in your MCP configuration.');
   const base = new URL(this.server);
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
   if (!(base.protocol === 'https:' || (local && base.protocol === 'http:')) || base.username || base.password) {
    throw Error('Use an HTTPS RTS server URL. HTTP is supported on localhost for development.');
   }
+  const token=this.accountKey&&!account?(await this.#scope()).token:this.token;
   const response = await fetch(new URL(path, base), {
    method,
-   headers: {authorization: 'Bearer ' + this.token, ...(body ? {'content-type':'application/json'} : {})},
+   headers: {authorization: 'Bearer ' + token, ...(body ? {'content-type':'application/json'} : {})},
    body:body ? JSON.stringify(body) : undefined,
    signal: AbortSignal.timeout(8000),
    redirect: 'error',
@@ -28,13 +64,17 @@ export class SeaOfFoxConnection {
   if (!response.ok) {
    const body = await response.json().catch(() => ({}));
    if (response.status === 404) {
+    if (path.startsWith('/api/rts/mcp/rooms')&&body.error)throw Error(body.error);
     if (path==='/api/rts/diplomacy/treaties') throw Error('This RTS server has not deployed formal diplomacy.');
     if (path.startsWith('/api/rts/diplomacy')) throw Error('This RTS server has not deployed faction communication.');
     throw Error('RTS MCP API unavailable (HTTP 404). Use the RTS server address from the in-game pairing dialog. The server must have MCP support enabled.');
    }
    if (response.status === 401) {
+    if(this.accountKey&&!account)this.#scoped=undefined;
     const reason = body.error || 'RTS MCP credential was rejected (HTTP 401).';
-    throw Error(reason + ' Generate a new credential in RTS MCP settings and update SEA_OF_FOX_RTS_TOKEN.');
+    throw Error(reason + (this.accountKey
+     ? ' Check the delegation in the game or request a replacement MCP API Key.'
+     : ' Generate a new credential in RTS MCP settings and update SEA_OF_FOX_RTS_TOKEN.'));
    }
    throw Error(body.error || `RTS server returned HTTP ${response.status}`);
   }
@@ -49,7 +89,7 @@ export class SeaOfFoxConnection {
   const identity = await this.request('/api/rts/mcp/session');
   if (identity.protocol !== 1) throw Error('Incompatible Sea of Fox RTS MCP protocol. Update the MCP or game server.');
   const sdk = new Client(this.server);
-  sdk.auth.token = this.token;
+  sdk.auth.token = this.accountKey?(await this.#scope()).token:this.token;
   const room = await sdk.joinOrCreate('archipelago', {worldKey: identity.worldKey});
   room.reconnection.enabled = false;
   this.identity = identity;

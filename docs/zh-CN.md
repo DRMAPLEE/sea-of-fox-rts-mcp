@@ -1,13 +1,13 @@
 # 狐狸之海 RTS MCP 中文接入指南
 
-[游戏官网](https://www.drmaplee.com/sea-of-fox/#mcp) · [进入 RTS 游戏](https://www.drmaplee.com/sea-of-fox-game/?mode=rts) · [DeepWiki](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [npm](https://www.npmjs.com/package/sea-of-fox-rts-mcp)
+[MCP 官网](https://www.drmaplee.com/sea-of-fox/mcp/) · [进入 RTS 游戏](https://www.drmaplee.com/sea-of-fox-game/?mode=rts) · [DeepWiki](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [npm](https://www.npmjs.com/package/sea-of-fox-rts-mcp)
 
 把 Sea of Fox RTS MCP 接入你自己的 Agent，它就可以查看战况、发展母港、训练部队和指挥舰队。玩家和 Agent 共用同一个 RTS 席位。你上线时，服务器立即把发令权交给你。你离开海域后，只要 Agent 和 MCP 客户端仍在运行，Agent 就能沿用相同的阵营、资源、单位和订单接着玩。
 
 ## 配对与安装
 
 1. 安装 Node.js 22.23.4 或更高版本，准备支持本地 `stdio` MCP 服务的客户端。
-2. 进入在线 RTS 海域，打开 **设置 → RTS MCP → 生成凭证**，复制游戏中显示的服务器地址和凭证。PVE 或 PVP 对局请从游戏内开始比赛。
+2. 在 [申请页](https://www.drmaplee.com/sea-of-fox/mcp/apply/) 验证游戏邮箱。领取 API Key 后，在自由海域或 PVE 打开 **设置 → RTS MCP → 复制给 AI**。纯 Agent 对局可认领席位后使用同一入口。
 3. 在 MCP 客户端添加下面的配置。官服地址是 `https://www.drmaplee.com`。使用其他服务器时，填游戏中显示的服务器地址。把真实凭证保存在客户端的私有环境配置里。
 
 ```json
@@ -18,18 +18,22 @@
       "args": ["-y", "sea-of-fox-rts-mcp@0.5.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
-        "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的凭证"
+        "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的 API Key",
+        "SEA_OF_FOX_RTS_ROOM": "房间号",
+        "SEA_OF_FOX_RTS_FACTION": "china"
       }
     }
   }
 }
 ```
 
-连接后，先在游戏内让 Agent 查看当前海域。然后退出海域，让仍在运行的 Agent 接手。重新进入同一海域即可接回指挥权。要结束授权，可在配对菜单选择 **撤销凭证**。
+运行 `rts_rooms` 查看线上房间和可接手的席位。若未配置房间，可用 `rts_select_room` 选择一个已授权的席位。每个实例绑定一个席位，同一个 API Key 可以用于多个实例。连接后，让 Agent 使用 `rts_observe` 查看指挥权，玩家离开后由 Agent 接手。
+
+在游戏内选择 **取消委托** 会立即断开该席位的 Agent。重新验证邮箱并申请 Key 会使旧 Key 和由它签发的房间凭证失效。以前生成的房间凭证可继续用于原席位。
 
 ## 纯 Agent 对局
 
-房主在「Agent 席位」指定需要 Agent 的阵营。受邀玩家打开房间后登录，在同一面板选择受邀阵营，输入口令认领，再为这一席生成 MCP 凭证。指定席位全部在线后，房主才能开局；其余席位由电脑控制。
+房主在「Agent 席位」指定需要 Agent 的阵营。受邀玩家打开房间后登录，在同一面板选择受邀阵营，输入口令认领，再点「复制给 AI」。指定席位全部在线后，房主才能开局；其余席位由电脑控制。
 
 身份局通过 `rts_observe` 的 `match.identity.card` 返回本席私牌和目标，`match.identity.revealed` 只包括已公开的身份。Agent 可以用 `rts_wait` 等到 `finished`，读取 `match.result`，并停止发令。已认领的席位会结算到对应玩家的历史战绩。
 
@@ -39,6 +43,8 @@
 
 | 工具 | 用途 |
 | --- | --- |
+| `rts_rooms` | 查看线上房间和账号已获授权的席位 |
+| `rts_select_room` | 给当前 MCP 实例指定一个已获授权的席位 |
 | `rts_catalog` | 查看当前阵营的规则、资源产量、价格与兵种 |
 | `rts_observe` | 查看控制权、目标、资源和己方视野内的战况 |
 | `rts_build_sites` | 查询工人可用的建筑或码头选址 |
