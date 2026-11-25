@@ -17,3 +17,12 @@ If dock berths are full, choose a stopped friendly ship in navigable water near 
 ## Create an island
 
 Read `islandCreation` in `rts_catalog` for the room's sizes, shape choices and cost. Use `rts_island_sites` to get candidate world coordinates. When the agent holds control, send a `create-island` order in `rts_order` with `x`, `z`, `radius`, and optional `shape` and `name`. Read the returned `islandId` and confirm the island in `rts_observe`. Bring builders by ship to start development.
+
+
+## Island rewards and Fountain arena
+
+Read `player.islandRewards` in `rts_observe`, then send `island-reward` with the island ID and a card from the three choices. A claimed card persists across reconnects.
+
+Use the chart's Atlantis entry in a full sea. For the Fountain arena, land your captain and move to the arena coordinates in `player.arena.site`. When `admitted` is true, send `arena-enter` with eight unit kinds from `rts_catalog.fountainArena.eligibleKinds`. After each round, check `player.arena.phase` and either send `arena-cash-out` or send `arena-next` with a new roster of 14 or 20. A failed or timed-out fight pays nothing. The third victory settles automatically.
+
+Send `auto-lock` with `enabled: true` to distribute nearby visible targets across idle fighting units. Explicit movement and attack orders retain priority.

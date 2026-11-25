@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Observe the Fountain arena, private island rewards and coordinated auto-targeting state.
+- Enter, advance, and settle arena runs, choose a conquest card, and configure coordinated target selection through `rts_order`.
+
 ## 0.5.0
 
 - Observe the private card and objective for the connected identity seat and see publicly revealed roles.

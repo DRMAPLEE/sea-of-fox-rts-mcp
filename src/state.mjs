@@ -56,6 +56,7 @@ export function observe(state, identity, options = {}) {
   islandId:u.islandId || null, ...coordinates(u), y:Math.round(u.y*10)/10,
   hp:u.hp, maxHp:u.maxHp, order:u.order || 'idle', stance:u.stance,
   targetId:u.targetId || null, embarkedOn:u.embarkedOn || null, swimming:u.swimming,
+  arenaTeam:state.unitTactics?.get(u.id)?.arenaTeam||undefined,
   ...(own(u,playerId) ? {destination:destinations[u.id], voyage:voyages[u.id], boardingShipId:boardings[u.id]} : {}),
  });
  const building = b => ({
@@ -94,8 +95,9 @@ export function observe(state, identity, options = {}) {
 
  return {
   ...header, player:{name:player.name, status:player.status, resources:player.resources,
-   queued:plan.queued, population:ownUnits.length, captainReadyTick:player.captainReady,
-   councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null)},
+   queued:plan.queued, population:ownUnits.filter(unit=>!state.unitTactics?.get(unit.id)?.arenaId).length, captainReadyTick:player.captainReady,
+   councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null),
+   arena:parse(plan.arena,null),islandRewards:parse(plan.islandRewards,{}),autoLock:plan.autoLock!==false},
   match:{mode:match.mode, phase:match.phase, hostId:match.hostId, winnerFaction:match.winnerFaction,
    reason:match.reason, victoryRule:match.victoryRule, result, ...(identityMatch?{identity:identityMatch}:{}), winnerFactions, factionTreaties:match.factionTreaties,
    remainingOpponents:match.remainingFactions?.filter(id=>id!==faction&&treaty(id)!=='allied'), objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,

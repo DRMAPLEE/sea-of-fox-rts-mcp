@@ -47,4 +47,11 @@ export const orderSchema = z.discriminatedUnion('type', [
  order('march-at-atlantis', {...army, destination:z.enum(['altar','entrance'])}, 'Follow the route inside Atlantis.'),
  order('atlantis-interact', {unitIds:z.tuple([entityId]), action:z.enum(['ladder','chart','disc','altar'])}, 'Use a structure with a nearby captain at Atlantis.'),
  order('council-buy', {unitIds:z.tuple([entityId]), item:kind}, 'Buy technology or a unit at the Fountain Council with the captain.'),
+ order('auto-lock', {enabled:z.boolean()}, 'Enable or disable nearby coordinated target distribution. Manual orders remain in force.'),
+ order('demolish', building, 'Demolish a finished owned building and refund 80 percent of its construction cost.'),
+ order('atlantis-storm', point, 'Spend the one-time Atlantis storm reward on an eligible sea position.'),
+ order('island-reward', {...island,card:kind}, 'Choose one of the three pending cards shown in the private observation.'),
+ order('arena-enter', {roster:z.array(kind).length(8)}, 'Enter the Fountain arena with eight chosen faction soldiers after your captain arrives.'),
+ order('arena-next', {roster:z.array(kind).min(14).max(20)}, 'Continue a won arena run with exactly 14 or 20 soldiers, as specified by the round.'),
+ order('arena-cash-out', {}, 'Claim accumulated resources after winning a Fountain arena round.'),
 ]);
