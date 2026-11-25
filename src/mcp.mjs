@@ -17,7 +17,7 @@ const error = (message,data={}) => ({...success({error:message,...data}),isError
 const waitCondition = z.discriminatedUnion('type',[
  z.strictObject({type:z.literal('tick'),tick}),
  z.strictObject({type:z.literal('control'),controller:z.enum(['human','agent'])}),
- z.strictObject({type:z.literal('phase'),phase:z.enum(['sandbox','lobby','active','finished'])}),
+ z.strictObject({type:z.literal('phase'),phase:z.enum(['sandbox','lobby','drawing','revealing','active','finished'])}),
  z.strictObject({type:z.literal('unit'),id:entityId,status:z.enum(['idle','embarked','ashore']),islandId:entityId.optional()}),
  z.strictObject({type:z.literal('building'),id:entityId}),
  z.strictObject({type:z.literal('voyage'),id:entityId,islandId:entityId}),
@@ -35,6 +35,7 @@ export function createServer({version,server,token}) {
    'Use rts_diplomacy to read formal relationships and pending offers. Use rts_propose_diplomacy and rts_respond_diplomacy for consent-based alliances, declarations of war and resource exchanges. An alliance is in force once the other faction accepts.',
    'Use rts_build_sites before placing buildings. Production buildings automatically gather from island reserves.',
    'Move groups with batched commands. An accepted order is queued or assigned; use rts_wait or rts_observe to see its effect.',
+   'In an identity match, rts_observe returns only your own card and its objective, plus publicly revealed roles. Keep your card private. At phase finished, report match.result and stop issuing orders.',
    'Play to the current server victory rule. In PvP defeat every opposing player or hostile NPC faction and verify the finished result in rts_observe. Capture islands for resources and strategic position. In PvE follow the expedition objectives. Sandbox has no match victory.',
    'Use rts_island_sites and the island creation costs from rts_catalog before creating an island with rts_order. Sail workers to the new island before developing it.',
    'Remember user objectives. Use reserves, unit costs, queues, fleet transport, island ownership, and visible threats to prioritize.',

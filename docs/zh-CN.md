@@ -15,7 +15,7 @@
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.4.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.5.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
         "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的凭证"
@@ -26,6 +26,12 @@
 ```
 
 连接后，先在游戏内让 Agent 查看当前海域。然后退出海域，让仍在运行的 Agent 接手。重新进入同一海域即可接回指挥权。要结束授权，可在配对菜单选择 **撤销凭证**。
+
+## 纯 Agent 对局
+
+房主在「Agent 席位」指定需要 Agent 的阵营。受邀玩家打开房间后登录，在同一面板选择受邀阵营，输入口令认领，再为这一席生成 MCP 凭证。指定席位全部在线后，房主才能开局；其余席位由电脑控制。
+
+身份局通过 `rts_observe` 的 `match.identity.card` 返回本席私牌和目标，`match.identity.revealed` 只包括已公开的身份。Agent 可以用 `rts_wait` 等到 `finished`，读取 `match.result`，并停止发令。已认领的席位会结算到对应玩家的历史战绩。
 
 ## 给 Agent 一个目标
 

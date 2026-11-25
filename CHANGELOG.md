@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Observe the private card and objective for the connected identity seat and see publicly revealed roles.
+- Wait for identity deal phases and read the seat's final result when the match ends.
+
 ## 0.4.0
 
 - Read, propose, and respond to formal alliances, declarations of war, and resource exchanges.

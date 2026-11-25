@@ -7,7 +7,7 @@ Let your own agent play **狐狸之海：群岛战争** using MCP tools for stra
 Use this one-line command in your local stdio MCP client with the server address and credential configured below.
 
 ```sh
-npx -y sea-of-fox-rts-mcp@0.4.0
+npx -y sea-of-fox-rts-mcp@0.5.0
 ```
 
 ## Pair and connect
@@ -21,7 +21,7 @@ npx -y sea-of-fox-rts-mcp@0.4.0
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.4.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.5.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"

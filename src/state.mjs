@@ -82,12 +82,22 @@ export function observe(state, identity, options = {}) {
  }
  const friendlyBuildings = buildings.filter(b => !b.hostile && b.faction === faction);
  const activeRaids = match.raids?.filter(r => r.active) || [];
+ const card = parse(plan.identityCardJSON,null);
+ const identityMatch = match.mode==='identity'?{...match.identity,
+  card:card?{...card,goal:card.goal??(identity.card?.role===card.role?identity.card.goal:null)}:null}:null;
+ const winner = identityMatch?.winner;
+ const winnerFactions = match.winnerFactions ?? (match.winnerFaction?[match.winnerFaction]:[]);
+ const wonIdentity = winner==='court'?['lord','loyalist'].includes(card?.role):winner===card?.role;
+ const result = match.phase!=='finished'?null:player.status==='surrendered'?'surrendered':
+  identityMatch?(winner&&card?(wonIdentity?'won':'lost'):'finished'):
+  winnerFactions.length?(winnerFactions.includes(faction)?'won':'lost'):'finished';
+
  return {
   ...header, player:{name:player.name, status:player.status, resources:player.resources,
    queued:plan.queued, population:ownUnits.length, captainReadyTick:player.captainReady,
    councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null)},
   match:{mode:match.mode, phase:match.phase, hostId:match.hostId, winnerFaction:match.winnerFaction,
-   reason:match.reason, victoryRule:match.victoryRule, winnerFactions:match.winnerFactions, factionTreaties:match.factionTreaties,
+   reason:match.reason, victoryRule:match.victoryRule, result, ...(identityMatch?{identity:identityMatch}:{}), winnerFactions, factionTreaties:match.factionTreaties,
    remainingOpponents:match.remainingFactions?.filter(id=>id!==faction&&treaty(id)!=='allied'), objectives:match.objectives, holdFaction:match.holdFaction, elapsedSeconds:match.elapsedSeconds,
    factions:match.standings, societies:match.societies,
    holdSeconds:match.holdSeconds, requiredHoldSeconds:match.requiredHoldSeconds, activeRaids, atlantis:match.atlantis},
