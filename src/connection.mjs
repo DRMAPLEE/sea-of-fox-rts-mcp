@@ -1,4 +1,5 @@
 import {Client} from '@colyseus/sdk';
+import {setTimeout as delay} from 'node:timers/promises';
 
 export class SeaOfFoxConnection {
  #room;
@@ -9,6 +10,9 @@ export class SeaOfFoxConnection {
  #scoping;
  #roomKey;
  #faction;
+ #recentState;
+ #stateRequest;
+ #nextReadAt=0;
 
  constructor({server,token,room,faction}) {
   this.server = server;
@@ -31,6 +35,7 @@ export class SeaOfFoxConnection {
   this.#roomKey=worldKey;
   this.#faction||=faction||null;
   const selected=await this.#scope();
+  if(selected.headless)await this.room();
   return {worldKey:selected.worldKey,faction:selected.faction,expires:selected.expires};
  }
 
@@ -91,20 +96,22 @@ export class SeaOfFoxConnection {
   const sdk = new Client(this.server);
   sdk.auth.token = this.accountKey?(await this.#scope()).token:this.token;
   const room = await sdk.joinOrCreate('archipelago', {worldKey: identity.worldKey});
-  room.reconnection.enabled = false;
+  room.reconnection.enabled = identity.headless===true;
   this.identity = identity;
   this.#room = room;
   room.onMessage('ack', ack => this.#pending.get(ack.id)?.(ack));
   const disconnect = () => {
    if (this.#room !== room) return;
    this.#room = undefined;
+   this.#recentState=undefined;
    for (const settle of this.#pending.values()) settle(null);
    for (const wake of this.#waiters) wake();
   };
   room.onLeave(disconnect);
-  room.onDrop(disconnect);
+  if(!identity.headless)room.onDrop(disconnect);
   room.onStateChange(() => { for (const wake of this.#waiters) wake(); });
   try {
+   if(identity.headless){await this.#readState();return room;}
    const ready = await this.#wait(room, state => state?.players?.has(identity.playerId), 6000);
    if (!ready.matched) throw Error('Timed out waiting for the RTS player state.');
    return room;
@@ -123,12 +130,34 @@ export class SeaOfFoxConnection {
 
  async snapshot() {
   const room = await this.room();
-  return room.state.toJSON();
+  return this.identity.headless?this.#readState():room.state.toJSON();
  }
 
  async wait(predicate, timeout, signal) {
   const room = await this.room();
-  return this.#wait(room, predicate, timeout, signal);
+  if(!this.identity.headless)return this.#wait(room, predicate, timeout, signal);
+  const deadline=performance.now()+timeout;
+  for(;;){
+   signal?.throwIfAborted();
+   const state=await this.#readState();
+   if(predicate(state))return {matched:true,state};
+   const remaining=deadline-performance.now();
+   if(remaining<=0)return {matched:false,state};
+   await delay(Math.min(750,remaining),undefined,{signal});
+  }
+ }
+
+ #readState(){
+  if(this.#recentState&&performance.now()<this.#nextReadAt)return Promise.resolve(this.#recentState);
+  this.#stateRequest??=(async()=>{
+   const remaining=this.#nextReadAt-performance.now();
+   if(remaining>0)await delay(remaining);
+   const state=await this.request('/api/rts/mcp/state');
+   this.#recentState=state;
+   this.#nextReadAt=performance.now()+300;
+   return state;
+  })().finally(()=>{this.#stateRequest=undefined;});
+  return this.#stateRequest;
  }
 
  #wait(room, predicate, timeout, signal) {
@@ -162,6 +191,7 @@ export class SeaOfFoxConnection {
    const settle = ack => {
     clearTimeout(timer);
     this.#pending.delete(id);
+    if(ack?.ok)this.#recentState=undefined;
     resolve(ack || {id, ok:false, uncertain:true, error:'Acknowledgement missing. Observe before retrying with the same batch ID.'});
    };
    const timer = setTimeout(() => settle(null), 4500);

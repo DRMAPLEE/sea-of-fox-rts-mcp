@@ -15,7 +15,7 @@
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.5.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.7.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://www.drmaplee.com",
         "SEA_OF_FOX_RTS_TOKEN": "在这里填写你的 API Key",

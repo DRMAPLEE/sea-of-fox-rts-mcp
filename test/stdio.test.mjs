@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_draw_identity','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -172,7 +172,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  const createIsland={type:'create-island',...islandSites.sites[0],name:'前进基地'};
  assert.equal((await order([createIsland],'human-island')).error,'HUMAN_IN_CONTROL');
  const start=await observe();
- assert.equal(start.controller,'human');
+ assert.equal(start.controller,'human',JSON.stringify(start));
  assert.equal(start.playerId,player.playerId);
  assert.ok(start.player.resources.wood>0);
  assert.equal(start.visibleOtherUnits.red,undefined);
@@ -328,4 +328,50 @@ test('account-key instances pin one room while sharing one account key',async t=
  const denied=await west.callTool({name:'rts_select_room',arguments:{worldKey:'east'}});
  assert.match(decode(denied).error,/pinned/);
  assert.deepEqual(selected.sort(),['east','west']);
+});
+
+test('MCP selects a cloud save, reads live data on demand and waits for local match ticks',{skip:!gamePath,timeout:25000},async t=>{
+ const {pathToFileURL}=await import('node:url');
+ const {resolve,join}=await import('node:path');
+ const {tmpdir}=await import('node:os');
+ const {mkdtemp,rm}=await import('node:fs/promises');
+ const load=module=>import(pathToFileURL(resolve(gamePath,'services/rts-server',module)));
+ const {createRTSServer}=await load('src/server.mjs');
+ const {RTSWorld}=await load('shared/RTSWorld.js');
+ const directory=await mkdtemp(join(tmpdir(),'seafox-mcp-headless-')),messages=[];
+ const service=await createRTSServer({databaseFile:join(directory,'worlds.sqlite'),enablePhysicalWake:false,emailSender:async m=>messages.push(m)});
+ const base='http://127.0.0.1:'+(await service.listen({port:0})).port;
+ t.after(async()=>{await service.close();await rm(directory,{recursive:true,force:true});});
+ const email='headless@example.test',key='LOCAL-0000000000000002';
+ const post=async(path,body,cookie)=>{
+  const response=await fetch(base+'/api/rts/'+path,{method:'POST',headers:{'content-type':'application/json',...(cookie?{cookie}:{})},body:JSON.stringify(body)});
+  const data=await response.json();
+  assert.ok(response.ok,JSON.stringify(data));return data;
+ };
+ const proof=async(purpose,cookie)=>{
+  const {challengeId}=await post('auth/email/send',{email,purpose},cookie);
+  return {email,challengeId,code:messages.at(-1).code};
+ };
+ const login=await post('auth/email/verify',await proof('signin'));
+ const cookie='tidewater-account='+login.token;
+ const root=await post('auth/email/mcp-key',await proof('mcp',cookie),cookie);
+ const world=new RTSWorld();world.addPlayer('local-player','领主','china');
+ await post('auth/local-saves/'+key+'/sync',{snapshot:{...world.snapshot(),localPlayerId:'local-player'},
+  revision:0,release:true,controller:crypto.randomUUID(),writeId:crypto.randomUUID()},cookie);
+ await post('auth/local-saves/'+key+'/delegate',{enabled:true},cookie);
+ assert.equal(service.live.size,0);
+ const client=await launch(t,{SEA_OF_FOX_RTS_URL:base,SEA_OF_FOX_RTS_TOKEN:root.token});
+ const call=async(name,args={})=>{
+  const result=await client.callTool({name,arguments:args}),data=decode(result);
+  assert.equal(result.isError??false,false,JSON.stringify(data));return data;
+ };
+ assert.ok((await call('rts_rooms')).delegated.some(seat=>seat.worldKey===key));
+ assert.equal((await call('rts_select_room',{worldKey:key})).worldKey,key);
+ const first=await call('rts_observe');
+ assert.equal(first.controller,'agent');
+ assert.ok(first.player.resources.wood>0);
+ const next=await call('rts_wait',{until:{type:'tick',tick:first.tick+2},timeoutMs:5000});
+ assert.equal(next.matched,true);
+ const units=await call('rts_observe',{view:'units',filter:'own',kind:'worker'});
+ assert.ok(units.items.length>0);
 });

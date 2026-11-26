@@ -1,3 +1,4 @@
+const readEntry=(table,id)=>typeof table?.get==='function'?table.get(id):table?.[id];
 const parse = (value, fallback) => value ? JSON.parse(value) : fallback;
 const values = (state, key) => Object.values(state[key] || {});
 const coordinates = record => ({x:Math.round(record.x*10)/10, z:Math.round(record.z*10)/10});
@@ -56,7 +57,7 @@ export function observe(state, identity, options = {}) {
   islandId:u.islandId || null, ...coordinates(u), y:Math.round(u.y*10)/10,
   hp:u.hp, maxHp:u.maxHp, order:u.order || 'idle', stance:u.stance,
   targetId:u.targetId || null, embarkedOn:u.embarkedOn || null, swimming:u.swimming,
-  arenaTeam:state.unitTactics?.get(u.id)?.arenaTeam||undefined,
+  arenaTeam:readEntry(state.unitTactics,u.id)?.arenaTeam||undefined,
   ...(own(u,playerId) ? {destination:destinations[u.id], voyage:voyages[u.id], boardingShipId:boardings[u.id]} : {}),
  });
  const building = b => ({
@@ -95,7 +96,7 @@ export function observe(state, identity, options = {}) {
 
  return {
   ...header, player:{name:player.name, status:player.status, resources:player.resources,
-   queued:plan.queued, population:ownUnits.filter(unit=>!state.unitTactics?.get(unit.id)?.arenaId).length, captainReadyTick:player.captainReady,
+   queued:plan.queued, population:ownUnits.filter(unit=>!readEntry(state.unitTactics,unit.id)?.arenaId).length, captainReadyTick:player.captainReady,
    councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null),
    arena:parse(plan.arena,null),islandRewards:parse(plan.islandRewards,{}),autoLock:plan.autoLock!==false},
   match:{mode:match.mode, phase:match.phase, hostId:match.hostId, winnerFaction:match.winnerFaction,
@@ -120,26 +121,26 @@ export function waitPredicate(condition, playerId) {
  return state => {
   switch (condition.type) {
    case 'tick': return state.tick >= condition.tick;
-   case 'control': return state.players.get(playerId)?.productionPlan?.controller === condition.controller;
+   case 'control': return readEntry(state.players,playerId)?.productionPlan?.controller === condition.controller;
    case 'phase': return state.match.phase === condition.phase;
    case 'unit': {
-    const unit=state.units?.get(condition.id);
+    const unit=readEntry(state.units,condition.id);
     if (!unit || unit.ownerId !== playerId) return false;
     if (condition.status === 'idle') return !unit.order;
     if (condition.status === 'embarked') return !!unit.embarkedOn;
     return unit.islandId === condition.islandId && !unit.embarkedOn && !unit.swimming;
    }
    case 'voyage': {
-    const voyages=state.players.get(playerId)?.productionPlan?.voyages;
+    const voyages=readEntry(state.players,playerId)?.productionPlan?.voyages;
     const voyage=parse(voyages,{})[condition.id];
     return voyage?.islandId === condition.islandId && ['arrived','blocked'].includes(voyage.status);
    }
    case 'building': {
-    const building=state.buildings?.get(condition.id);
+    const building=readEntry(state.buildings,condition.id);
     return building?.ownerId === playerId && building.progress >= 1;
    }
    case 'event':
-    return [...(state.events?.values() || [])].some(event => event.tick > condition.afterTick &&
+    return (typeof state.events?.values==='function'?[...state.events.values()]:Object.values(state.events??{})).some(event => event.tick > condition.afterTick &&
      (!condition.event || event.type === condition.event) &&
      (!condition.entityId || [event.targetId,event.sourceId].includes(condition.entityId)));
   }

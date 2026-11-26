@@ -54,11 +54,11 @@ export function createServer({version,server,token,room,faction}) {
  };
 
  register('rts_rooms',
-  'List public Agent-compatible rooms and seats explicitly assigned to your account. Only seats in delegated can be selected.',
+  'List Agent-compatible rooms and authorized single-player saves. Select an entry from delegated to connect.',
   z.strictObject({}),true,async()=>success(await game.rooms()));
 
  register('rts_select_room',
-  'Bind this MCP instance to one delegated RTS seat. Use faction when the account controls multiple seats in that room. Start another instance to play a different room.',
+  'Connect this MCP instance to one delegated RTS seat or explicitly authorized single-player save. A paused single-player save only advances after this connection. Use faction when the account controls multiple seats in that room. Start another instance to play a different room.',
   z.strictObject({worldKey:z.string().regex(/^[A-Za-z0-9_-]{1,24}$/),faction:z.string().regex(/^[a-z]{2,20}$/).optional()}),
   false,async({worldKey,faction})=>success(await game.selectRoom(worldKey,faction)));
 
@@ -124,6 +124,13 @@ export function createServer({version,server,token,room,faction}) {
    limit:z.number().int().min(1).max(50).optional(),
    afterTick:tick.optional().describe('For events, only return events after this tick'),
   }), true, async options => success(observe(await game.snapshot(),game.identity,options)));
+
+ register('rts_draw_identity',
+  'Draw your private identity from an available card slot while an identity match is dealing roles.',
+  z.strictObject({slot:z.number().int().min(0).max(4)}), false, async ({slot}) => {
+   const receipt=await game.command({type:'draw-identity',slot},randomUUID());
+   return receipt.ok?success(receipt.result):error(receipt.error,receipt);
+  });
 
  register('rts_build_sites',
   'Find server-validated candidate coordinates for a building on the land builder’s current island. Candidates can become invalid as the match changes. For docks the game searches the shoreline.',

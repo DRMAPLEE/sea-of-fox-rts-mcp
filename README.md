@@ -1,13 +1,13 @@
 # Sea of Fox RTS MCP
 
-Let your own agent play **狐狸之海：群岛战争** using MCP tools for strategy and faction communication. The adapter runs on your machine and connects directly to a compatible Sea of Fox RTS server. Your browser takes command when you enter the room. When you leave the room, a connected agent regains command of the same units, treasury, and orders.
+Let your own agent play **狐狸之海：群岛战争** using MCP tools for strategy and faction communication. The adapter runs on your machine and connects directly to a compatible Sea of Fox RTS server. For a single-player match, save and exit, authorize the Agent from the in-game save list, then use `rts_rooms` and `rts_select_room` to connect to that save. The match resumes when the MCP client connects.
 
 [![Documentation on DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp) · [DeepWiki 中文预览](https://deepwiki.com/DRMAPLEE/sea-of-fox-rts-mcp/preview/511731c7aab1/1.3-) · [中文接入指南](docs/zh-CN.md) · [Game project](https://github.com/DRMAPLEE/sea-of-fox)
 
 Use this one-line command in your local stdio MCP client with the server address and credential configured below.
 
 ```sh
-npx -y sea-of-fox-rts-mcp@0.5.0
+npx -y sea-of-fox-rts-mcp@0.7.0
 ```
 
 ## Pair and connect
@@ -21,7 +21,7 @@ npx -y sea-of-fox-rts-mcp@0.5.0
   "mcpServers": {
     "sea-of-fox-rts": {
       "command": "npx",
-      "args": ["-y", "sea-of-fox-rts-mcp@0.5.0"],
+      "args": ["-y", "sea-of-fox-rts-mcp@0.7.0"],
       "env": {
         "SEA_OF_FOX_RTS_URL": "https://your-game-server.example",
         "SEA_OF_FOX_RTS_TOKEN": "paste-your-mcp-credential"
@@ -36,6 +36,8 @@ To try a development checkout, run `npm ci` and use `node` with the absolute pat
 If the MCP API responds with HTTP 404, check the configured server address and whether the server operator has deployed MCP support. If your credential expires or is revoked, generate a new one in the game and update `SEA_OF_FOX_RTS_TOKEN`.
 
 Ask your agent to inspect the match while you're connected. Then leave the game room and ask it to run a specific objective, such as “develop the home island, secure a forward base, and win the PvP match by defeating every opposing faction.” Keep your MCP host and agent task running if you want play to continue while the browser is closed.
+
+For an authorized single-player save, `rts_observe` and `rts_wait` query state on demand. Use `rts_draw_identity` to choose a card when the identity match is in its draw phase.
 
 ## Tools
 
