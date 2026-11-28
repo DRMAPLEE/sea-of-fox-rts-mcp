@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_draw_identity','rts_harbor_guide','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_draw_identity','rts_harbor_guide','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_saves','rts_select_room','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -98,10 +98,10 @@ test('MCP reports the browser room link and shares harbor dialogue with its brow
  const overview=await call('rts_observe');
  assert.equal(overview.matchUrl,matchUrl);
  const contacts=overview.visibleContacts.find(row=>row.faction==='red');
- assert.equal(contacts.relation,'war');assert.equal(contacts.units.grenadier.count,1);
- assert.equal(overview.diplomacy.find(row=>row.id==='red').relation,'war');
- const {items:[contact]}=await call('rts_observe',{view:'units',relation:'war',id:visible.id});
- assert.equal(contact.kind,'grenadier');assert.equal(contact.relation,'war');assert.ok(contact.name);
+ assert.equal(contacts.relation,'neutral');assert.equal(contacts.units.grenadier.count,1);
+ assert.equal(overview.diplomacy.find(row=>row.id==='red').relation,'neutral');
+ const {items:[contact]}=await call('rts_observe',{view:'units',relation:'neutral',id:visible.id});
+ assert.equal(contact.kind,'grenadier');assert.equal(contact.relation,'neutral');assert.ok(contact.name);
  assert.equal((await call('rts_observe',{view:'units',id:hidden.id})).total,0);
  const {items:[harbor]}=await call('rts_observe',{view:'islands',id:home.id});
  assert.ok(harbor.terrain.landmarks.some(point=>point.label==='high-ground'&&point.y>0));
@@ -191,6 +191,12 @@ test('two MCP agents can negotiate while third parties see only broadcasts', {sk
  const trade=await eastAgent('rts_propose_diplomacy',{kind:'trade',toFaction:'red',offer:{wood:20},want:{gold:10}});
  const confirmedTrade=await redAgent('rts_respond_diplomacy',{proposalId:trade.proposal.id,decision:'accept'});
  assert.equal(confirmedTrade.proposal.state,'accepted');
+ assert.equal((await eastAgent('rts_diplomacy')).factions.find(f=>f.id==='red').relation,'allied');
+ const duel=await eastAgent('rts_propose_diplomacy',{kind:'duel',toFaction:'red',requestId:'duel-offline'});
+ assert.equal(duel.proposal.state,'pending');
+ assert.equal((await redAgent('rts_respond_diplomacy',{proposalId:duel.proposal.id,decision:'accept'})).proposal.state,'accepted');
+ assert.equal((await eastAgent('rts_diplomacy')).factions.find(f=>f.id==='red').relation,'war');
+ assert.equal((await eastAgent('rts_respond_diplomacy',{proposalId:duel.proposal.id,decision:'end'})).proposal.state,'ended');
  assert.equal((await eastAgent('rts_diplomacy')).factions.find(f=>f.id==='red').relation,'allied');
  const secret=(await request('watch',{token:neutral.token})).data;
  assert.deepEqual(secret.messages,[]);
@@ -319,7 +325,8 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  const landing=await order([{type:'disembark',unitIds:[ship.id],islandId:island.id}],'land');
  assert.equal(landing.accepted,1,JSON.stringify(landing));
  assert.equal((await wait({type:'unit',id:marine.id,status:'ashore',islandId:island.id})).matched,true);
- // Seed a small battle at the flag after verifying the actual landing.
+ // Seed an agreed battle after verifying the actual landing.
+ world.state.factionTreaties={'china:red':'war'};
  for(const unit of Object.values(world.state.units)){
   if(unit.hostile&&unit.islandId===island.id) delete world.state.units[unit.id];
  }
@@ -449,6 +456,9 @@ test('MCP selects a cloud save, reads live data on demand and waits for local ma
   const result=await client.callTool({name,arguments:args}),data=decode(result);
   assert.equal(result.isError??false,false,JSON.stringify(data));return data;
  };
+ const cloudDirectory=await call('rts_saves');
+ assert.equal(cloudDirectory.storage,'cloud');assert.ok(cloudDirectory.saves.some(save=>save.worldKey===key&&!save.online&&save.canRestore));
+ assert.equal(service.live.size,0,'listing cloud saves never starts a world');
  assert.ok((await call('rts_rooms')).delegated.some(seat=>seat.worldKey===key));
  assert.equal((await call('rts_select_room',{worldKey:key})).worldKey,key);
  const first=await call('rts_observe');

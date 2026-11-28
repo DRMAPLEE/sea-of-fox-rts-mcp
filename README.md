@@ -70,3 +70,7 @@ npm pack --dry-run
 ```
 
 To test with a checkout of the game and installed RTS server dependencies, set `SEA_OF_FOX_GAME_DIR` to that checkout and run `npm test`. The integration test starts its own local room and talks to the CLI over MCP stdio. See the [release process](docs/releasing.md).
+
+Sandbox worlds have no island count cap. Read `rts_catalog` for `islandCreation.unlimited` and current production prerequisites. All factions must finish both lumber and quarry before other construction. Use `rts_propose_diplomacy` with `kind: "duel"` to invite another sandbox player, including offline players. The recipient sees the pending invitation when they return. Only acceptance starts combat; either participant can respond with `decision: "end"` to end the duel.
+
+Use `rts_saves` to read the account cloud save directory, including offline and undelegated saves. `rts_rooms` is a live/delegation directory. Empty rooms or an expired seat credential do not prove a saved game was deleted. Browser-local copies are separate from cloud backups. Legacy seat credentials cannot enumerate account saves; use an account API Key.

@@ -57,7 +57,7 @@ export function observe(state, identity, options = {}) {
  const selected = item => (!id || id === item.id) && (!kind || kind === item.kind) &&
   (!islandId || islandId === (item.islandId ?? item.id)) && scope(item);
  const unit = u => ({
-  id:u.id, kind:u.kind, faction:u.faction, ownerId:u.ownerId, hostile:u.hostile,
+  id:u.id, kind:u.kind, faction:u.faction,sourceFaction:u.sourceFaction||readEntry(state.unitTactics,u.id)?.sourceFaction||u.faction, ownerId:u.ownerId, hostile:u.hostile,
   name:u.name, relation:u.relation,
   islandId:u.islandId || null, ...coordinates(u), y:Math.round(u.y*10)/10,
   hp:u.hp, maxHp:u.maxHp, order:u.order || 'idle', stance:u.stance,
@@ -66,7 +66,7 @@ export function observe(state, identity, options = {}) {
   ...(own(u,playerId) ? {destination:destinations[u.id], voyage:voyages[u.id], boardingShipId:boardings[u.id]} : {}),
  });
  const building = b => ({
-  id:b.id, kind:b.kind, faction:b.faction, ownerId:b.ownerId, hostile:b.hostile,
+  id:b.id, kind:b.kind, faction:b.faction,sourceFaction:b.sourceFaction||b.faction, ownerId:b.ownerId, hostile:b.hostile,
   islandId:b.islandId, ...coordinates(b), y:b.y, hp:b.hp, maxHp:b.maxHp,
   progress:b.progress, buildRemaining:b.buildRemaining, buildState:b.buildState, builders:b.builders,
   productionRate:b.productionRate, queue:parse(b.queue,[]), rally:rallies[b.id],

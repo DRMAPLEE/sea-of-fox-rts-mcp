@@ -28,6 +28,7 @@ export function createServer({version,server,token,room,faction}) {
  const game = new SeaOfFoxConnection({server,token,room,faction});
  const mcp = new McpServer({name:'sea-of-fox-rts-mcp',version}, {
   instructions:[
+   'When asked about saves, call rts_saves to read the cloud save directory, even when no rooms are online. Never conclude that there are no saves from rts_rooms or a missing/expired room credential. Local browser copies may also exist and cannot be enumerated by this server tool.',
    'With an account key, call rts_rooms to find authorized seats. Bind this instance to one match with rts_select_room. Start a separate instance for each simultaneous match.',
    'Play Sea of Fox through server-authorized RTS tools. Read rts_observe and rts_catalog before issuing orders.',
    'Use rts_observe islands for terrain and elevation landmarks. Read visibleContacts for troop types and use the units view with relation war for individual enemies. Contacts never include troops hidden by fog. Check diplomacy before planning an attack.',
@@ -61,6 +62,10 @@ export function createServer({version,server,token,room,faction}) {
  register('rts_rooms',
   'List Agent-compatible rooms and authorized single-player saves. Select an entry from delegated to connect.',
   z.strictObject({}),true,async()=>success(await game.rooms()));
+
+ register('rts_saves',
+  'Read the account cloud save directory, including offline saves and saves without Agent delegation. This is a read-only metadata query and does not start a simulation. Use this for saved-game questions. An empty live-room list is not evidence that cloud saves were deleted. A legacy room token cannot enumerate account saves.',
+  z.strictObject({}),true,async()=>success(await game.saves()));
 
  register('rts_select_room',
   'Connect this MCP instance to one delegated RTS seat or explicitly authorized single-player save. A paused single-player save only advances after this connection. Use faction when the account controls multiple seats in that room. Start another instance to play a different room.',
@@ -109,8 +114,8 @@ export function createServer({version,server,token,room,faction}) {
   });
 
  register('rts_propose_diplomacy',
-  'Send a formal alliance, declaration of war, or resource trade proposal. The receiving faction must accept before it takes effect. For a trade, offer contains what your seat pays and want contains what the accepting seat pays. Trading requires a non-hostile relationship. Reuse requestId only for the same proposal.',
-  z.strictObject({toFaction:z.string().min(1).max(24),kind:z.enum(['alliance','war','trade']),
+  'Send an alliance, war, trade or sandbox duel invitation. Sandbox players are peaceful by default; duel invitations persist while the recipient is offline. The receiving faction must accept before it takes effect. For a trade, offer contains what your seat pays and want contains what the accepting seat pays. Trading requires a non-hostile relationship. Reuse requestId only for the same proposal.',
+  z.strictObject({toFaction:z.string().min(1).max(24),kind:z.enum(['alliance','war','trade','duel']),
    offer:tradeResources.optional(),want:tradeResources.optional(),requestId:diplomacyId.optional()}),false,
   async({requestId=randomUUID(),...proposal})=>{
    if(proposal.kind==='trade'&&(!Object.keys(proposal.offer||{}).length||!Object.keys(proposal.want||{}).length))
@@ -120,8 +125,8 @@ export function createServer({version,server,token,room,faction}) {
   });
 
  register('rts_respond_diplomacy',
-  'Accept or decline a proposal sent to your faction, or cancel a proposal sent from your seat. Read rts_diplomacy to verify its ID and terms before accepting. An accepted resource trade settles from both seats immediately.',
-  z.strictObject({proposalId:z.uuid(),decision:z.enum(['accept','decline','cancel']),requestId:diplomacyId.optional()}),false,
+  'Accept or decline a proposal sent to your faction, or cancel a proposal sent from your seat. Read rts_diplomacy to verify its ID and terms before accepting. An accepted resource trade settles immediately. Either duel participant may use decision end to restore peace.',
+  z.strictObject({proposalId:z.uuid(),decision:z.enum(['accept','decline','cancel','end']),requestId:diplomacyId.optional()}),false,
   async({proposalId,decision,requestId=randomUUID()})=>{
    const receipt=await game.command({type:'diplomacy-respond',proposalId,decision},'mcp-response-'+requestId);
    return receipt.ok?success({tick:receipt.tick,...receipt.result}):error(receipt.error,receipt);

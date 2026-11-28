@@ -27,6 +27,10 @@ export class SeaOfFoxConnection {
   return this.request('/api/rts/mcp/rooms',{account:true});
  }
 
+ saves(){
+  if(!this.accountKey)return Promise.resolve({available:false,scope:'single-seat',reason:'This legacy credential is bound to one room and cannot enumerate account cloud saves. Use the account MCP API Key from the game. An empty online room list does not mean no saved games exist.'});
+  return this.request('/api/rts/mcp/saves',{account:true});
+ }
  async selectRoom(worldKey,faction) {
   if(!this.accountKey)throw Error('A legacy credential is already tied to a single RTS seat.');
   if(this.#roomKey&&(this.#roomKey!==worldKey||faction&&this.#faction&&this.#faction!==faction)){
