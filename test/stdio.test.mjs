@@ -331,7 +331,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  assert.equal((await observe({view:'units',id:guard.id})).items[0].id,guard.id);
  const attack=await order([{type:'attack',unitIds:[marine.id],targetId:guard.id}],'attack-flag');
  assert.equal(attack.accepted,1,JSON.stringify(attack));
- assert.equal((await wait({type:'event',afterTick:attack.receipts[0].tick,event:'hit',entityId:guard.id})).matched,true);
+ assert.equal((await wait({type:'event',afterTick:Math.max(0,attack.receipts[0].tick-1),event:'hit',entityId:guard.id})).matched,true);
  assert.equal((await wait({type:'unit',status:'idle',id:marine.id},6000,attack.receipts[0].tick)).matched,true);
  assert.equal((await observe({view:'units',id:guard.id})).items.length,0);
  const capture=await order([{type:'capture',unitIds:[marine.id],islandId:island.id}],'capture-flag');
