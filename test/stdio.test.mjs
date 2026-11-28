@@ -56,20 +56,10 @@ test('MCP reports the browser room link and shares harbor dialogue with its brow
  const {resolve}=await import('node:path');
  const load=path=>import(pathToFileURL(resolve(gamePath,path)));
  const {createRTSServer}=await load('services/rts-server/src/server.mjs');
- const {createZhihuHarborAnswer,createZhihuHarborSearch}=await load('services/rts-server/src/HarborGuide.mjs');
+ const {createZhihuHarborAnswer}=await load('services/rts-server/src/HarborGuide.mjs');
  const {RTSClient}=await load('src/rts/RTSClient.js');
  const {Client:GameClient}=await import('@colyseus/sdk');
- const calls=[],queries=[];
- const harborSearch=createZhihuHarborSearch('test-secret',{fetchImpl:async(value,options)=>{
-  const url=new URL(value);
-  assert.equal(url.pathname,'/api/v1/content/zhihu_search');
-  assert.equal(options.headers.authorization,'Bearer test-secret');
-  queries.push(url.searchParams.get('Query'));
-  return Response.json({Code:0,Data:{Items:[
-   {Title:'船舶浮力',AuthorName:'测试作者',ContentText:'<em>船舶</em>依靠排水浮起。',Url:'https://www.zhihu.com/question/123'},
-   {Title:'无效来源',Url:'https://www.zhihu.com.example.com/'},
-  ]}});
- }});
+ const calls=[];
  const harborAnswer=createZhihuHarborAnswer('test-secret',{fetchImpl:async(url,options)=>{
   assert.equal(url,'https://developer.zhihu.com/v1/chat/completions');
   assert.equal(options.headers.authorization,'Bearer test-secret');
@@ -77,9 +67,9 @@ test('MCP reports the browser room link and shares harbor dialogue with its brow
   calls.push(JSON.parse(options.body));
   const question=JSON.parse(calls.at(-1).messages.at(-1).content).question;
   const command=question==='怎么提高木材产量？'?'\nACTION:build-lumber':'';
-  return Response.json({choices:[{message:{content:'看山的第 '+calls.length+' 条回复 [1]'+command,reasoning_content:'internal'}}]});
+  return Response.json({choices:[{message:{content:'看山的第 '+calls.length+' 条回复 [船舶浮力](https://www.zhihu.com/question/123)'+command,reasoning_content:'internal'}}]});
  }});
- const service=await createRTSServer({enablePhysicalWake:false,gameURL:'https://game.example/play/',harborAnswer,harborSearch});
+ const service=await createRTSServer({enablePhysicalWake:false,gameURL:'https://game.example/play/',harborAnswer});
  const base='http://127.0.0.1:'+(await service.listen({port:0})).port;
  const worldKey='harbor-chat',rooms=[];
  t.after(async()=>{for(const room of rooms)await room.leave().catch(()=>{});await service.close();});
@@ -102,27 +92,36 @@ test('MCP reports the browser room link and shares harbor dialogue with its brow
   return decode(result);
  };
  const matchUrl='https://game.example/play/?mode=rts&rts-room=harbor-chat';
- assert.equal((await call('rts_observe')).matchUrl,matchUrl);
+ const world=service.worlds.get(worldKey),home=world.state.islands['home-china'];
+ const visible=world.spawn('grenadier',other.identity.playerId,'red',home.x,home.z,{islandId:home.id,stance:'hold'});
+ const hidden=world.spawn('grenadier',other.identity.playerId,'red',home.x-40000,home.z,{stance:'hold'});
+ const overview=await call('rts_observe');
+ assert.equal(overview.matchUrl,matchUrl);
+ const contacts=overview.visibleContacts.find(row=>row.faction==='red');
+ assert.equal(contacts.relation,'war');assert.equal(contacts.units.grenadier.count,1);
+ assert.equal(overview.diplomacy.find(row=>row.id==='red').relation,'war');
+ const {items:[contact]}=await call('rts_observe',{view:'units',relation:'war',id:visible.id});
+ assert.equal(contact.kind,'grenadier');assert.equal(contact.relation,'war');assert.ok(contact.name);
+ assert.equal((await call('rts_observe',{view:'units',id:hidden.id})).total,0);
+ const {items:[harbor]}=await call('rts_observe',{view:'islands',id:home.id});
+ assert.ok(harbor.terrain.landmarks.some(point=>point.label==='high-ground'&&point.y>0));
+
  assert.equal((await call('rts_wait',{until:{type:'tick',tick:0}})).state.matchUrl,matchUrl);
  const first=await browser.harborGuide('木船为什么会浮？');
  assert.equal(first.npc.name,'看山');
- assert.deepEqual(first.messages.at(-1).sources,[
-  {number:1,title:'船舶浮力',author:'测试作者',url:'https://www.zhihu.com/question/123',cited:true},
- ]);
+ assert.match(first.messages.at(-1).content,/\[船舶浮力\]\(https:\/\/www\.zhihu\.com\/question\/123\)/);
  assert.deepEqual((await call('rts_harbor_guide')).messages,first.messages);
  assert.equal(calls.length,1);
  const next=await call('rts_harbor_guide',{message:'铁船呢？'});
- assert.equal(next.messages.at(-1).content,'看山的第 2 条回复 [1]');
+ assert.equal(next.messages.at(-1).content,'看山的第 2 条回复 [船舶浮力](https://www.zhihu.com/question/123)');
  assert.deepEqual((await browser.harborGuide()).messages,next.messages);
  assert.deepEqual((await other.harborGuide()).messages,[]);
  assert.equal(calls[1].model,'zhida-fast-1p5');
  assert.deepEqual(calls[1].messages.map(({role})=>role),['system','user']);
  assert.deepEqual(JSON.parse(calls[1].messages.at(-1).content).history,first.messages.map(({role,content})=>({role,content})));
- assert.deepEqual(queries,['木船为什么会浮？','木船为什么会浮？ 铁船呢？']);
  const last=await call('rts_harbor_guide',{message:'怎么提高木材产量？'});
  assert.equal(last.action?.command.type,'build');
  assert.equal(last.action.command.kind,'lumber');
- const world=service.worlds.get(worldKey);
  assert.ok(!Object.values(world.state.buildings).some(b=>b.kind==='lumber'&&b.ownerId===browser.identity.playerId),'advice alone never issues a command');
  assert.ok(!(await browser.harborGuide()).action,'old suggestions cannot be reissued from a reopened transcript');
  const receipt=await new Promise((resolve,reject)=>{
@@ -280,6 +279,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  assert.deepEqual(again.receipts,first.receipts);
  const construction=first.receipts[1].result.buildingId;
  const owned=await observe({view:'buildings',filter:'own',id:construction});
+ assert.ok(owned.items,JSON.stringify(owned));
  if (!owned.items.length) await wait({type:'tick',tick:first.receipts[1].tick+1});
  assert.equal((await observe({view:'buildings',filter:'own',id:construction})).items[0].kind,'lumber');
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2
+
+- Observe terrain elevations, visible troop types, formal faction relations, and hillside wall geometry.
+- Read construction footprints, wall slope limits, and the high-ground range of cannon towers.
+- Render Kanshan replies as Markdown where supported by the MCP host.
+
 ## 0.7.1
 
 - Include the browser match URL in observations and waits for eligible rooms.

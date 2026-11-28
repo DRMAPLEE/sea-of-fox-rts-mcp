@@ -23,7 +23,7 @@ function tally(entities, group) {
 export function observe(state, identity, options = {}) {
  const {playerId, worldKey} = identity;
  const {
-  view='overview', filter='all', islandId, id, kind, cursor, limit=24, afterTick,
+  view='overview', filter='all', islandId, id, kind, relation, cursor, limit=24, afterTick,
  } = options;
  const player = state.players?.[playerId];
  if (!player) throw Error('The player is no longer in this room.');
@@ -31,6 +31,7 @@ export function observe(state, identity, options = {}) {
  const match = Object.fromEntries(Object.entries(state.match || {}).map(([key,value]) =>
   key.endsWith('JSON') ? [key.slice(0,-4),parse(value,null)] : [key,value]));
  const faction = player.faction;
+ const intel=state.battleIntel;
  const treaty = other => match.factionTreaties?.[[faction,other].sort().join(':')] ?? null;
  const units = values(state,'units').filter(u => u.hp > 0);
  const buildings = values(state,'buildings').filter(b => b.hp > 0);
@@ -54,6 +55,7 @@ export function observe(state, identity, options = {}) {
   (!islandId || islandId === (item.islandId ?? item.id)) && scope(item);
  const unit = u => ({
   id:u.id, kind:u.kind, faction:u.faction, ownerId:u.ownerId, hostile:u.hostile,
+  name:u.name, relation:u.relation,
   islandId:u.islandId || null, ...coordinates(u), y:Math.round(u.y*10)/10,
   hp:u.hp, maxHp:u.maxHp, order:u.order || 'idle', stance:u.stance,
   targetId:u.targetId || null, embarkedOn:u.embarkedOn || null, swimming:u.swimming,
@@ -62,17 +64,20 @@ export function observe(state, identity, options = {}) {
  });
  const building = b => ({
   id:b.id, kind:b.kind, faction:b.faction, ownerId:b.ownerId, hostile:b.hostile,
-  islandId:b.islandId, ...coordinates(b), hp:b.hp, maxHp:b.maxHp,
+  islandId:b.islandId, ...coordinates(b), y:b.y, hp:b.hp, maxHp:b.maxHp,
   progress:b.progress, buildRemaining:b.buildRemaining, buildState:b.buildState, builders:b.builders,
   productionRate:b.productionRate, queue:parse(b.queue,[]), rally:rallies[b.id],
+  ...(['wall','wall-gate'].includes(b.kind)?{wall:{length:b.wallLength,yaw:b.wallYaw,rise:b.wallRise??0,locked:b.gateLocked}}:{}),
+  ...(b.coastalBattery?{coastalBattery:true}:{}),
  });
  const island = i => ({
   id:i.id, name:i.name, ownerFaction:i.ownerFaction || null, objective:match.objectives?.includes(i.id) || false,
   custom:!!i.custom, shape:i.terrainShape, ...coordinates(i), radius:i.radius, claimX:i.claimX, claimZ:i.claimZ, harborX:i.harborX, harborZ:i.harborZ,
   capture:i.capture, capturingFaction:i.capturingFaction || null, contested:i.contested,
   resourceProfile:i.resourceProfile || undefined, productionLimit:i.productionLimit,
+  terrain:intel?.terrainByIsland?.[i.id],
  });
- if (view === 'units') return {...header, ...page(units.filter(selected),optionsPage,unit)};
+ if (view === 'units') return {...header, ...page(units.filter(u=>selected(u)&&(!relation||u.relation===relation)),optionsPage,unit)};
  if (view === 'buildings') return {...header, ...page(buildings.filter(selected),optionsPage,building)};
  if (view === 'islands') return {...header, ...page(islands.filter(selected),optionsPage,island)};
  if (view === 'reserves') return {...header,...page(values(state,'deposits').filter(selected),optionsPage,item=>item)};
@@ -112,6 +117,7 @@ export function observe(state, identity, options = {}) {
   idleBuilders:ownUnits.filter(u=>['captain','worker'].includes(u.kind)&&!u.order&&!u.embarkedOn&&!u.swimming).slice(0,limit).map(unit),
   trainQueues:friendlyBuildings.filter(b=>parse(b.queue,[]).length).slice(0,limit).map(building),
   visibleOtherUnits:tally(units.filter(u=>u.hostile||u.faction!==faction),u=>u.faction || 'neutral'),
+  ...(intel?{visibleContacts:intel.contacts,diplomacy:intel.diplomacy}:{}),
   recentEvents:values(state,'events').filter(e=>e.tick>=state.tick-40)
    .sort((a,b)=>b.tick-a.tick).slice(0,Math.min(limit,8)),
  };

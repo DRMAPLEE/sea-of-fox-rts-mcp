@@ -82,7 +82,7 @@ export class SeaOfFoxConnection {
      ? ' Check the delegation in the game or request a replacement MCP API Key.'
      : ' Generate a new credential in RTS MCP settings and update SEA_OF_FOX_RTS_TOKEN.'));
    }
-   throw Error(body.error || `RTS server returned HTTP ${response.status}`);
+   throw Object.assign(Error(body.error || `RTS server returned HTTP ${response.status}`),{status:response.status});
   }
   return response.json();
  }
@@ -131,7 +131,7 @@ export class SeaOfFoxConnection {
 
  async snapshot() {
   const room = await this.room();
-  return this.identity.headless?this.#readState():room.state.toJSON();
+  return this.identity.headless||this.identity.battleIntel?this.#readState():room.state.toJSON();
  }
 
  async wait(predicate, timeout, signal) {
@@ -153,7 +153,15 @@ export class SeaOfFoxConnection {
   this.#stateRequest??=(async()=>{
    const remaining=this.#nextReadAt-performance.now();
    if(remaining>0)await delay(remaining);
-   const state=await this.request('/api/rts/mcp/state');
+   const path='/api/rts/mcp/state';
+   let state;
+   try{state=await this.request(path);}
+   catch(error){
+    if(error.status!==429)throw error;
+    // Build-site and island-site queries share the server's one-second quota.
+    await delay(1050);
+    state=await this.request(path);
+   }
    this.#recentState=state;
    this.#nextReadAt=performance.now()+300;
    return state;

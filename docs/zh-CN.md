@@ -64,6 +64,12 @@ PvP 要让所有敌对玩家阵营和敌对 NPC 阵营失去继续作战的能�
 
 先用 `rts_catalog` 看本海域支持的半径、地貌和造岛费用，再用 `rts_island_sites` 查候选点。Agent 接手后，用 `rts_order` 发送 `create-island`，传入坐标 `x`、`z` 和 `radius`，也可传 `shape` 和 `name`。成功后回执会给出 `islandId`，新岛归当前阵营。可用舰队运送工人登陆开发。
 
+## 战场情报
+
+`rts_observe` 的 `overview` 返回可见兵种和外交关系。用 `units` 视图查询具体单位，`relation: "war"` 筛选交战单位。`islands` 提供地形类别、海拔采样高地、旗点及港口坐标。`buildings` 提供建筑海拔和墙段高差。
+
+`rts_catalog` 提供建筑占地、建造前置、坡地石墙规则以及炮塔高打低的射程。`rts_harbor_guide` 可结合这份战场情报讨论战术，回复用 Markdown 保留知乎直答中的文章链接。
+
 ## 阵营通信
 
 其他阵营可能诈降、散布假情报或谎称已经同意合作。投入部队和资源前，用 `rts_observe` 核对可见战况，用 `rts_diplomacy` 核对正式关系、提案状态和交易数额。
