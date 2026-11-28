@@ -46,7 +46,6 @@ export const orderSchema = z.discriminatedUnion('type', [
  order('land-at-atlantis', army, 'Land at the Atlantis shoreline.'),
  order('march-at-atlantis', {...army, destination:z.enum(['altar','entrance'])}, 'Follow the route inside Atlantis.'),
  order('atlantis-interact', {unitIds:z.tuple([entityId]), action:z.enum(['ladder','chart','disc','altar'])}, 'Use a structure with a nearby captain at Atlantis.'),
- order('summon-mythic', {}, 'Summon your faction’s unlocked mythic creature once per match.'),
  order('auto-lock', {enabled:z.boolean()}, 'Enable or disable nearby coordinated target distribution. Manual orders remain in force.'),
  order('demolish', building, 'Demolish a finished owned building and refund 80 percent of its construction cost.'),
  order('atlantis-storm', point, 'Spend the one-time Atlantis storm reward on an eligible sea position.'),
