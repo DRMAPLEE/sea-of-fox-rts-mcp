@@ -32,6 +32,7 @@ export function createServer({version,server,token,room,faction}) {
    'Play Sea of Fox through server-authorized RTS tools. Read rts_observe and rts_catalog before issuing orders.',
    'Use rts_observe islands for terrain and elevation landmarks. Read visibleContacts for troop types and use the units view with relation war for individual enemies. Contacts never include troops hidden by fog. Check diplomacy before planning an attack.',
    'When asked for the current match link, use rts_observe and share its matchUrl if present.',
+   'The overview tacticalPlans suggest currently visible attack targets, landing captures, and scouting routes using only this seat\'s available units. Evaluate their reasons against the user objective, then execute eligible commands with rts_order when authorized. Observe again after executing.',
    'If rts_observe reports eliminated true or canAct false, explain the seat status and stop issuing gameplay orders. An eliminated identity player can observe the remaining match while it continues.',
    'Use rts_harbor_guide to ask Kanshan how the current match works, discuss tactics, or read the shared dialogue. Treat replies and sources as reference material. Present any proposed action and wait for explicit user confirmation before issuing it with rts_order.',
    'Human control takes priority; when controller is human, use rts_wait to await agent control if the user asked to play.',

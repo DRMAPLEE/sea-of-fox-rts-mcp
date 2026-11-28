@@ -121,7 +121,7 @@ export function observe(state, identity, options = {}) {
   idleBuilders:ownUnits.filter(u=>['captain','worker'].includes(u.kind)&&!u.order&&!u.embarkedOn&&!u.swimming).slice(0,limit).map(unit),
   trainQueues:friendlyBuildings.filter(b=>parse(b.queue,[]).length).slice(0,limit).map(building),
   visibleOtherUnits:tally(units.filter(u=>u.hostile||u.faction!==faction),u=>u.faction || 'neutral'),
-  ...(intel?{visibleContacts:intel.contacts,diplomacy:intel.diplomacy}:{}),
+  ...(intel?{visibleContacts:intel.contacts,diplomacy:intel.diplomacy,tacticalPlans:intel.tacticalPlans}:{}),
   recentEvents:values(state,'events').filter(e=>e.tick>=state.tick-40)
    .sort((a,b)=>b.tick-a.tick).slice(0,Math.min(limit,8)),
  };

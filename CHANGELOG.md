@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.4
+
+- Read scoped tactical plans for visible attacks, island capture, scouting, fleet boarding, and regrouping.
+- Add wall gap construction, gate conversion, gate locking, and wall boarding commands.
+
 ## 0.7.3
 
 - Report seat elimination and whether gameplay actions remain available, including while an identity match continues.
