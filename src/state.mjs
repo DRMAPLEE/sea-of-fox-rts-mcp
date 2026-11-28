@@ -41,7 +41,7 @@ export function observe(state, identity, options = {}) {
  const boardings = parse(plan.boardings,{});
  const rallies = parse(plan.rallies,{});
  const control = plan.controller || 'unknown';
- const header = {worldKey, tick:state.tick, playerId, faction, controller:control, fog:state.fog, layout:state.layout};
+ const header = {worldKey, matchUrl:identity.matchUrl??null, tick:state.tick, playerId, faction, controller:control, fog:state.fog, layout:state.layout};
  const optionsPage = {cursor,limit};
  const scope = item => {
   if (filter === 'own') return own(item,playerId);

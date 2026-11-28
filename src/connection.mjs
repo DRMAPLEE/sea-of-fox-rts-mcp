@@ -51,7 +51,7 @@ export class SeaOfFoxConnection {
   return this.#scoping;
  }
 
- async request(path, {method='GET',body,account=false}={}) {
+ async request(path, {method='GET',body,account=false,timeout=8000}={}) {
   if (!this.server || !this.token) throw Error('Set SEA_OF_FOX_RTS_URL and SEA_OF_FOX_RTS_TOKEN in your MCP configuration.');
   const base = new URL(this.server);
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
@@ -63,12 +63,13 @@ export class SeaOfFoxConnection {
    method,
    headers: {authorization: 'Bearer ' + token, ...(body ? {'content-type':'application/json'} : {})},
    body:body ? JSON.stringify(body) : undefined,
-   signal: AbortSignal.timeout(8000),
+   signal: AbortSignal.timeout(timeout),
    redirect: 'error',
   });
   if (!response.ok) {
    const body = await response.json().catch(() => ({}));
    if (response.status === 404) {
+    if (path==='/api/rts/harbor-guide') throw Error('This RTS server has not deployed the sandbox harbor guide.');
     if (path.startsWith('/api/rts/mcp/rooms')&&body.error)throw Error(body.error);
     if (path==='/api/rts/diplomacy/treaties') throw Error('This RTS server has not deployed formal diplomacy.');
     if (path.startsWith('/api/rts/diplomacy')) throw Error('This RTS server has not deployed faction communication.');

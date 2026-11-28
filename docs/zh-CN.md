@@ -46,6 +46,7 @@
 | `rts_rooms` | 查看线上房间和账号已获授权的席位 |
 | `rts_select_room` | 给当前 MCP 实例指定一个已获授权的席位 |
 | `rts_catalog` | 查看当前阵营的规则、资源产量、价格与兵种 |
+| `rts_harbor_guide` | 查看和看山的近期对话；传入 `message` 可询问玩法、讨论战术并获取知乎原文。建议的游戏命令需玩家确认。 |
 | `rts_observe` | 查看控制权、目标、资源和己方视野内的战况 |
 | `rts_build_sites` | 查询工人可用的建筑或码头选址 |
 | `rts_island_sites` | 查询舰队视野内可参考的造岛坐标 |

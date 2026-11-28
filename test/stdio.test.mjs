@@ -18,7 +18,7 @@ test('CLI exposes structured RTS tools through stdio and tells unpaired players 
  const client = await launch(t,{SEA_OF_FOX_RTS_URL:'',SEA_OF_FOX_RTS_TOKEN:''});
  const {tools} = await client.listTools();
  assert.deepEqual(tools.map(tool=>tool.name).sort(),
-  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_draw_identity','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
+  ['rts_build_sites','rts_catalog','rts_diplomacy','rts_draw_identity','rts_harbor_guide','rts_island_sites','rts_messages','rts_observe','rts_order','rts_propose_diplomacy','rts_respond_diplomacy','rts_rooms','rts_select_room','rts_send_message','rts_wait']);
  const orders = tools.find(tool=>tool.name==='rts_order');
  assert.equal(orders.annotations.readOnlyHint,false);
  assert.match(JSON.stringify(orders.inputSchema),/sail-to-island/);
@@ -51,6 +51,90 @@ test('CLI explains how to recover from an unavailable RTS MCP API or expired cre
 });
 
 const gamePath = process.env.SEA_OF_FOX_GAME_DIR;
+test('MCP reports the browser room link and shares harbor dialogue with its browser seat', {skip:!gamePath,timeout:18000},async t=>{
+ const {pathToFileURL}=await import('node:url');
+ const {resolve}=await import('node:path');
+ const load=path=>import(pathToFileURL(resolve(gamePath,path)));
+ const {createRTSServer}=await load('services/rts-server/src/server.mjs');
+ const {createZhihuHarborAnswer,createZhihuHarborSearch}=await load('services/rts-server/src/HarborGuide.mjs');
+ const {RTSClient}=await load('src/rts/RTSClient.js');
+ const {Client:GameClient}=await import('@colyseus/sdk');
+ const calls=[],queries=[];
+ const harborSearch=createZhihuHarborSearch('test-secret',{fetchImpl:async(value,options)=>{
+  const url=new URL(value);
+  assert.equal(url.pathname,'/api/v1/content/zhihu_search');
+  assert.equal(options.headers.authorization,'Bearer test-secret');
+  queries.push(url.searchParams.get('Query'));
+  return Response.json({Code:0,Data:{Items:[
+   {Title:'船舶浮力',AuthorName:'测试作者',ContentText:'<em>船舶</em>依靠排水浮起。',Url:'https://www.zhihu.com/question/123'},
+   {Title:'无效来源',Url:'https://www.zhihu.com.example.com/'},
+  ]}});
+ }});
+ const harborAnswer=createZhihuHarborAnswer('test-secret',{fetchImpl:async(url,options)=>{
+  assert.equal(url,'https://developer.zhihu.com/v1/chat/completions');
+  assert.equal(options.headers.authorization,'Bearer test-secret');
+  assert.match(options.headers['X-Request-Timestamp'],/^\d{10}$/);
+  calls.push(JSON.parse(options.body));
+  const question=JSON.parse(calls.at(-1).messages.at(-1).content).question;
+  const command=question==='怎么提高木材产量？'?'\nACTION:build-lumber':'';
+  return Response.json({choices:[{message:{content:'看山的第 '+calls.length+' 条回复 [1]'+command,reasoning_content:'internal'}}]});
+ }});
+ const service=await createRTSServer({enablePhysicalWake:false,gameURL:'https://game.example/play/',harborAnswer,harborSearch});
+ const base='http://127.0.0.1:'+(await service.listen({port:0})).port;
+ const worldKey='harbor-chat',rooms=[];
+ t.after(async()=>{for(const room of rooms)await room.leave().catch(()=>{});await service.close();});
+ const enter=async faction=>{
+  const browser=new RTSClient({url:base,storage:null,persistentStorage:null});
+  browser.identity=await browser.request('/api/rts/session',{
+   method:'POST',body:JSON.stringify({worldKey,faction}),
+  });
+  const game=new GameClient(base);
+  game.auth.token=browser.identity.token;
+  rooms.push(await game.joinOrCreate('archipelago',{worldKey}));
+  return browser;
+ };
+ const browser=await enter('china'),other=await enter('red');
+ const {token}=await browser.mcpCredential('POST');
+ const client=await launch(t,{SEA_OF_FOX_RTS_URL:base,SEA_OF_FOX_RTS_TOKEN:token});
+ const call=async(name,args={})=>{
+  const result=await client.callTool({name,arguments:args});
+  assert.ok(!result.isError,JSON.stringify(decode(result)));
+  return decode(result);
+ };
+ const matchUrl='https://game.example/play/?mode=rts&rts-room=harbor-chat';
+ assert.equal((await call('rts_observe')).matchUrl,matchUrl);
+ assert.equal((await call('rts_wait',{until:{type:'tick',tick:0}})).state.matchUrl,matchUrl);
+ const first=await browser.harborGuide('木船为什么会浮？');
+ assert.equal(first.npc.name,'看山');
+ assert.deepEqual(first.messages.at(-1).sources,[
+  {number:1,title:'船舶浮力',author:'测试作者',url:'https://www.zhihu.com/question/123',cited:true},
+ ]);
+ assert.deepEqual((await call('rts_harbor_guide')).messages,first.messages);
+ assert.equal(calls.length,1);
+ const next=await call('rts_harbor_guide',{message:'铁船呢？'});
+ assert.equal(next.messages.at(-1).content,'看山的第 2 条回复 [1]');
+ assert.deepEqual((await browser.harborGuide()).messages,next.messages);
+ assert.deepEqual((await other.harborGuide()).messages,[]);
+ assert.equal(calls[1].model,'zhida-fast-1p5');
+ assert.deepEqual(calls[1].messages.map(({role})=>role),['system','user']);
+ assert.deepEqual(JSON.parse(calls[1].messages.at(-1).content).history,first.messages.map(({role,content})=>({role,content})));
+ assert.deepEqual(queries,['木船为什么会浮？','木船为什么会浮？ 铁船呢？']);
+ const last=await call('rts_harbor_guide',{message:'怎么提高木材产量？'});
+ assert.equal(last.action?.command.type,'build');
+ assert.equal(last.action.command.kind,'lumber');
+ const world=service.worlds.get(worldKey);
+ assert.ok(!Object.values(world.state.buildings).some(b=>b.kind==='lumber'&&b.ownerId===browser.identity.playerId),'advice alone never issues a command');
+ assert.ok(!(await browser.harborGuide()).action,'old suggestions cannot be reissued from a reopened transcript');
+ const receipt=await new Promise((resolve,reject)=>{
+  const id=crypto.randomUUID();
+  const timer=setTimeout(()=>reject(Error('Missing build receipt')),3000);
+  const off=rooms[0].onMessage('ack',ack=>{if(ack.id===id){off();clearTimeout(timer);resolve(ack);}});
+  rooms[0].send('command',{id,command:last.action.command});
+ });
+ assert.equal(receipt.ok,true,receipt.error);
+ assert.equal(world.state.buildings[receipt.result.buildingId].kind,'lumber');
+});
+
 test('two MCP agents can negotiate while third parties see only broadcasts', {skip:!gamePath,timeout:25000}, async t => {
  const {pathToFileURL} = await import('node:url');
  const {resolve} = await import('node:path');
