@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3
+
+- Report seat elimination and whether gameplay actions remain available, including while an identity match continues.
+
 ## 0.7.2
 
 - Observe terrain elevations, visible troop types, formal faction relations, and hillside wall geometry.

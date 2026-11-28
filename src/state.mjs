@@ -42,7 +42,10 @@ export function observe(state, identity, options = {}) {
  const boardings = parse(plan.boardings,{});
  const rallies = parse(plan.rallies,{});
  const control = plan.controller || 'unknown';
- const header = {worldKey, matchUrl:identity.matchUrl??null, tick:state.tick, playerId, faction, controller:control, fog:state.fog, layout:state.layout};
+ const eliminated=['defeated','surrendered'].includes(player.status);
+ const canAct=!eliminated&&['active','sandbox'].includes(match.phase);
+ const header = {worldKey, matchUrl:identity.matchUrl??null, tick:state.tick, playerId, faction, controller:control,
+  status:player.status,eliminated,canAct,fog:state.fog, layout:state.layout};
  const optionsPage = {cursor,limit};
  const scope = item => {
   if (filter === 'own') return own(item,playerId);
@@ -101,6 +104,7 @@ export function observe(state, identity, options = {}) {
 
  return {
   ...header, player:{name:player.name, status:player.status, resources:player.resources,
+   eliminated,canAct,
    queued:plan.queued, population:ownUnits.filter(unit=>!readEntry(state.unitTactics,unit.id)?.arenaId).length, captainReadyTick:player.captainReady,
    councilTech:parse(plan.councilTech,[]), atlantisKnowledge:parse(plan.atlantisKnowledge,null),
    islandRewards:parse(plan.islandRewards,{}),autoLock:plan.autoLock!==false},

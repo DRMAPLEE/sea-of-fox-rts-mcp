@@ -20,3 +20,13 @@ test('identity observations include only the acting card and a personal terminal
  assert.equal(observe(observation,{playerId:self}).match.result,'won');
  assert.equal(observe(observation,{playerId:rival}).match.result,'lost');
 });
+
+test('elimination is explicit during an ongoing identity match in every observation view',()=>{
+ const state={tick:40,match:{mode:'identity',phase:'active'},players:{me:{faction:'china',status:'defeated',productionPlan:{}}},units:{},buildings:{},islands:{}};
+ for(const view of ['overview','units','buildings','islands','events']){
+  const result=observe(state,{playerId:'me'},{view});
+  assert.equal(result.eliminated,true);assert.equal(result.canAct,false);assert.equal(result.status,'defeated');
+ }
+ const result=observe(state,{playerId:'me'});assert.equal(result.player.eliminated,true);assert.equal(result.match.result,null);
+ state.players.me.status='active';assert.equal(observe(state,{playerId:'me'}).canAct,true);
+});
