@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Include the browser match URL in observations and waits for eligible rooms.
+- Use `rts_harbor_guide` to read or continue the connected player's Kanshan conversation.
+
 ## 0.6.0
 
 - Observe the Fountain arena, private island rewards and coordinated auto-targeting state.

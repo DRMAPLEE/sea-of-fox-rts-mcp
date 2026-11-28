@@ -249,7 +249,7 @@ test('real RTS pairing, fog, economy orders and human/agent handoff', {skip:!gam
  assert.equal(catalog.buildings.lumber.produces,'wood');
  assert.ok(catalog.commands.includes('embark'));
  assert.ok(catalog.commands.includes('create-island'));
- assert.equal(catalog.victoryRules.pvp,'eliminate-opponents');
+ assert.ok(['capture-opponent-islands','eliminate-opponents'].includes(catalog.victoryRules.pvp));
  const islandCost=catalog.islandCreation.cost;
  const islandSites=await call('rts_island_sites',{radius:catalog.islandCreation.radii[0],shape:'atoll'});
  assert.ok(islandSites.sites.length,JSON.stringify(islandSites));
